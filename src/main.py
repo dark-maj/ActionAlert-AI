@@ -8,20 +8,21 @@ MODEL_PATH = "models/classifier.pkl"
 def home():
     return{"status":"ok"}
 class EmailRequest(BaseModel):
-    text:str
+    subject: str = ""
+    body: str
 class ClassifyResponse(BaseModel):
     label:str
     confidence:float
 @app.post("/classify")
 def classifier(req:EmailRequest):
-    if(not req.text.strip()):
-        raise HTTPException(status_code=400,detail="text cannot be empty")
+    text = (req.subject + " " + req.body).strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Email body cannot be empty")
     if not os.path.exists(MODEL_PATH):
-        raise HTTPException(status_code=503,detail="Model file not available")
+        raise HTTPException(status_code=503, detail="Model file not available")
     else:
-        label,confidence=predict(req.text)      
-    return ClassifyResponse(label=str(label[0]),confidence=float(
-  confidence))
+        label, confidence = predict(text)
+    return ClassifyResponse(label=str(label[0]), confidence=round(float(confidence), 2))
 
 
 
