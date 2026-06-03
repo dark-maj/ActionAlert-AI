@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from src.classifier import predict
 from src.extractor import extract
+from dateutil import parser as dateparser
+from datetime import datetime, timezone
 import os
 app=FastAPI()
 MODEL_PATH = "models/classifier.pkl"
@@ -26,10 +28,21 @@ def classifier(req:EmailRequest):
     else:
         label, confidence = predict(text)
         extracted = extract(text)
+    deadline = extracted.get("deadline")
+    if str(label[0]) == "urgent" and deadline:
+        try:
+            deadline_dt = dateparser.parse(deadline, fuzzy=True)
+            if deadline_dt:
+                deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
+                hours_until = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
+                if hours_until <= 24:
+                    print(f"[ALERT] Urgent email — deadline in {hours_until:.1f}h: {deadline}")
+        except Exception:
+            pass
     return ClassifyResponse(
           label=str(label[0]),
           confidence=round(float(confidence), 2),
-          deadline=extracted.get("deadline"),
+          deadline=deadline,
           actions=extracted.get("actions", [])
     )
 
