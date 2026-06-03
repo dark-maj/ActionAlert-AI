@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from src.classifier import predict
+from src.extractor import extract
 import os
 app=FastAPI()
 MODEL_PATH = "models/classifier.pkl"
@@ -11,8 +12,10 @@ class EmailRequest(BaseModel):
     subject: str = ""
     body: str
 class ClassifyResponse(BaseModel):
-    label:str
-    confidence:float
+    label: str
+    confidence: float
+    deadline: str | None
+    actions: list[str]
 @app.post("/classify")
 def classifier(req:EmailRequest):
     text = (req.subject + " " + req.body).strip()
@@ -22,7 +25,13 @@ def classifier(req:EmailRequest):
         raise HTTPException(status_code=503, detail="Model file not available")
     else:
         label, confidence = predict(text)
-    return ClassifyResponse(label=str(label[0]), confidence=round(float(confidence), 2))
+        extracted = extract(text)
+    return ClassifyResponse(
+          label=str(label[0]),
+          confidence=round(float(confidence), 2),
+          deadline=extracted.get("deadline"),
+          actions=extracted.get("actions", [])
+    )
 
 
 
