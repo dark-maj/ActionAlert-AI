@@ -1,15 +1,15 @@
-from fastapi import FastAPI, HTTPException
+﻿from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from src.classifier import predict
 from src.extractor import extract
+from src.gmail_auth import get_service, list_recent_emails
 from dateutil import parser as dateparser
 from datetime import datetime, timezone
 import os
 app=FastAPI()
 MODEL_PATH = "models/classifier.pkl"
-@app.get("/")
-def home():
-    return{"status":"ok"}
+
 class EmailRequest(BaseModel):
     subject: str = ""
     body: str
@@ -36,7 +36,7 @@ def classifier(req:EmailRequest):
                 deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
                 hours_until = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
                 if hours_until <= 24:
-                    print(f"[ALERT] Urgent email — deadline in {hours_until:.1f}h: {deadline}")
+                    print(f"[ALERT] Urgent email - deadline in {hours_until:.1f}h: {deadline}")
         except Exception:
             pass
     return ClassifyResponse(
@@ -46,7 +46,54 @@ def classifier(req:EmailRequest):
           actions=extracted.get("actions", [])
     )
 
+@app.get("/emails")
+def get_emails(n: int = 10):
+    try:
+        service = get_service()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Gmail auth failed: {e}")
+
+    raw_emails = list_recent_emails(service, n=n)
+    results = []
+    for email in raw_emails:
+        text = (email["subject"] + " " + email["body"]).strip()
+        label, confidence = predict(text)
+
+        deadline = None
+        actions = []
+        if str(label[0]) == "urgent":
+            extracted = extract(text)
+            deadline = extracted.get("deadline")
+            actions = extracted.get("actions", [])
+
+        if str(label[0]) == "urgent" and deadline:
+            try:
+                deadline_dt = dateparser.parse(deadline, fuzzy=True)
+                if deadline_dt:
+                    deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
+                    hours_until = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
+                    if hours_until <= 24:
+                        print(f"[ALERT] Urgent email from {email['from']} - deadline in {hours_until:.1f}h: {deadline}")
+            except Exception:
+                pass
+
+        results.append({
+            "id": email["id"],
+            "subject": email["subject"],
+            "from": email["from"],
+            "snippet": email["snippet"],
+            "label": str(label[0]),
+            "confidence": round(float(confidence), 2),
+            "deadline": deadline,
+            "actions": actions,
+        })
+
+    return {"emails": results}
+
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+
 
 
     
     
+

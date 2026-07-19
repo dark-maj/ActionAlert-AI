@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ActionAlert AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f4f4f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: white; border-radius: 12px; padding: 2rem; width: 100%; max-width: 540px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: #18181b; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: #52525b; margin-bottom: 0.4rem; }
+    input, textarea { width: 100%; border: 1px solid #d4d4d8; border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.95rem; outline: none; transition: border-color 0.15s; }
+    input:focus, textarea:focus { border-color: #6366f1; }
+    textarea { resize: vertical; min-height: 120px; margin-bottom: 1rem; }
+    input { margin-bottom: 1rem; }
+    button { width: 100%; padding: 0.7rem; background: #6366f1; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    button:hover { background: #4f46e5; }
+    button:disabled { background: #a5b4fc; cursor: not-allowed; }
+    #result { margin-top: 1.5rem; display: none; }
+    .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .badge-urgent { background: #fee2e2; color: #b91c1c; }
+    .badge-not_urgent { background: #dcfce7; color: #15803d; }
+    .row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.8rem; }
+    .field-label { font-size: 0.8rem; font-weight: 600; color: #71717a; width: 80px; flex-shrink: 0; }
+    .field-value { font-size: 0.9rem; color: #18181b; }
+    ul { list-style: none; padding: 0; }
+    ul li::before { content: "→ "; color: #6366f1; }
+    ul li { font-size: 0.9rem; color: #18181b; margin-bottom: 0.3rem; }
+    .error { color: #b91c1c; font-size: 0.9rem; margin-top: 1rem; display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>ActionAlert AI</h1>
+    <label for="subject">Subject</label>
+    <input id="subject" type="text" placeholder="e.g. Meeting tomorrow" />
+    <label for="body">Email Body</label>
+    <textarea id="body" placeholder="Paste your email here..."></textarea>
+    <button id="btn" onclick="classify()">Classify</button>
+    <p class="error" id="error"></p>
+    <div id="result">
+      <div class="row">
+        <span class="field-label">Label</span>
+        <span id="label-badge" class="badge"></span>
+        <span id="confidence" style="font-size:0.8rem;color:#71717a;"></span>
+      </div>
+      <div class="row">
+        <span class="field-label">Deadline</span>
+        <span id="deadline" class="field-value"></span>
+      </div>
+      <div class="row" style="align-items:flex-start">
+        <span class="field-label">Actions</span>
+        <ul id="actions"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function classify() {
+      const subject = document.getElementById("subject").value.trim();
+      const body = document.getElementById("body").value.trim();
+      const btn = document.getElementById("btn");
+      const errorEl = document.getElementById("error");
+      const resultEl = document.getElementById("result");
+
+      if (!body) { showError("Email body cannot be empty."); return; }
+
+      errorEl.style.display = "none";
+      resultEl.style.display = "none";
+      btn.disabled = true;
+      btn.textContent = "Classifying...";
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/classify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject, body })
+        });
+        if (!res.ok) { const e = await res.json(); showError(e.detail || "Server error."); return; }
+        const data = await res.json();
+        renderResult(data);
+      } catch (e) {
+        showError("Could not reach the server. Make sure uvicorn is running.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Classify";
+      }
+    }
+
+    function renderResult(data) {
+      const badge = document.getElementById("label-badge");
+      badge.textContent = data.label;
+      badge.className = "badge badge-" + data.label;
+      document.getElementById("confidence").textContent = (data.confidence * 100).toFixed(0) + "% confidence";
+      document.getElementById("deadline").textContent = data.deadline || "None detected";
+      const ul = document.getElementById("actions");
+      ul.innerHTML = data.actions.length
+        ? data.actions.map(a => `<li>${a}</li>`).join("")
+        : "<li style='color:#71717a'>None detected</li>";
+      document.getElementById("result").style.display = "block";
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("error");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+  </script>
+</body>
+</html>

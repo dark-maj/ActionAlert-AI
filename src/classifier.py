@@ -5,6 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
+
 def clean_text(text):# cleaning the text
     text1=text.lower()
     text2=re.sub(r'[^a-zA-Z\s]','',text1)# replaces the pattern in to a text which named text3
