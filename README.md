@@ -28,8 +28,7 @@ An intelligent Gmail Email Classifier built using Machine Learning and AI to aut
 
 ## Backend
 
-* Node.js
-* Express.js
+* FASTAPI
 * Python (ML Service)
 
 ## Machine Learning
