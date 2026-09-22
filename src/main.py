@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, HTTPException
+﻿from fastapi import FastAPI, HTTPException,Header,Depends
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from src.classifier import predict
@@ -18,7 +18,18 @@ class ClassifyResponse(BaseModel):
     confidence: float
     deadline: str | None
     actions: list[str]
-@app.post("/classify")
+def verify_password(x_app_password :str =Header(None)):
+    password=os.getenv("APP_PASSWORD")
+    if password == x_app_password :
+        return 
+    elif password==None:
+        return
+       
+    else:
+      raise HTTPException(status_code=401,detail="Error Occured")
+                       
+    
+@app.post("/classify",dependencies=[Depends(verify_password)])
 def classifier(req:EmailRequest):
     text = (req.subject + " " + req.body).strip()
     if not text:
@@ -46,7 +57,7 @@ def classifier(req:EmailRequest):
           actions=extracted.get("actions", [])
     )
 
-@app.get("/emails")
+@app.get("/emails",dependencies=[Depends(verify_password)])
 def get_emails(n: int = 10):
     try:
         service = get_service()
@@ -89,6 +100,9 @@ def get_emails(n: int = 10):
         })
 
     return {"emails": results}
+@app.get("/health")
+def get_health():
+    return {"Status":"ok"}
 
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
