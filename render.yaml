@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: actionalert-ai
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GMAIL_TOKEN_JSON
+        sync: false
