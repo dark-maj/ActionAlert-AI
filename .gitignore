@@ -8,3 +8,4 @@ CLAUDE.md
 credentials.json
 token.json
 .claude/
+*.db
