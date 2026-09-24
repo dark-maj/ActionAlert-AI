@@ -6,8 +6,21 @@ from src.extractor import extract
 from src.gmail_auth import get_service, list_recent_emails
 from dateutil import parser as dateparser
 from datetime import datetime, timezone
+from contextlib import asynccontextmanager
+from src.storage import init_db
 import os
+
+
+
+
 app=FastAPI()
+@asynccontextmanager
+async def  lifespan(app):
+    db=init_db()
+    yield
+app = FastAPI(lifespan=lifespan)
+
+
 MODEL_PATH = "models/classifier.pkl"
 
 class EmailRequest(BaseModel):
