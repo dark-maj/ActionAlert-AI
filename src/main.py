@@ -7,7 +7,7 @@ from src.gmail_auth import get_service, list_recent_emails
 from dateutil import parser as dateparser
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
-from src.storage import init_db
+from src.storage import init_db,save_email
 import os
 
 
@@ -101,7 +101,7 @@ def get_emails(n: int = 10):
             except Exception:
                 pass
 
-        results.append({
+        result={
             "id": email["id"],
             "subject": email["subject"],
             "from": email["from"],
@@ -110,7 +110,11 @@ def get_emails(n: int = 10):
             "confidence": round(float(confidence), 2),
             "deadline": deadline,
             "actions": actions,
-        })
+        }
+        save_email(result)
+        results.append(result)
+
+
 
     return {"emails": results}
 @app.get("/health")
