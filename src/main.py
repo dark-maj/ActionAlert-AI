@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, HTTPException
+﻿from fastapi import FastAPI, HTTPException,Header,Depends
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from src.classifier import predict
@@ -6,8 +6,21 @@ from src.extractor import extract
 from src.gmail_auth import get_service, list_recent_emails
 from dateutil import parser as dateparser
 from datetime import datetime, timezone
+from contextlib import asynccontextmanager
+from src.storage import init_db,save_email,list_emails
 import os
+
+
+
+
 app=FastAPI()
+@asynccontextmanager
+async def  lifespan(app):
+    db=init_db()
+    yield
+app = FastAPI(lifespan=lifespan)
+
+
 MODEL_PATH = "models/classifier.pkl"
 
 class EmailRequest(BaseModel):
@@ -18,7 +31,18 @@ class ClassifyResponse(BaseModel):
     confidence: float
     deadline: str | None
     actions: list[str]
-@app.post("/classify")
+def verify_password(x_app_password :str =Header(None)):
+    password=os.getenv("APP_PASSWORD")
+    if password == x_app_password :
+        return 
+    elif password==None:
+        return
+       
+    else:
+      raise HTTPException(status_code=401,detail="Error Occured")
+                       
+    
+@app.post("/classify",dependencies=[Depends(verify_password)])
 def classifier(req:EmailRequest):
     text = (req.subject + " " + req.body).strip()
     if not text:
@@ -46,7 +70,7 @@ def classifier(req:EmailRequest):
           actions=extracted.get("actions", [])
     )
 
-@app.get("/emails")
+@app.get("/emails",dependencies=[Depends(verify_password)])
 def get_emails(n: int = 10):
     try:
         service = get_service()
@@ -77,7 +101,7 @@ def get_emails(n: int = 10):
             except Exception:
                 pass
 
-        results.append({
+        result={
             "id": email["id"],
             "subject": email["subject"],
             "from": email["from"],
@@ -86,9 +110,20 @@ def get_emails(n: int = 10):
             "confidence": round(float(confidence), 2),
             "deadline": deadline,
             "actions": actions,
-        })
+        }
+        save_email(result)
+        results.append(result)
 
     return {"emails": results}
+
+@app.get("/history", dependencies=[Depends(verify_password)])
+def get_history(limit: int = 50, label: str = None):
+    emails = list_emails(limit=limit, label=label)
+    return {"emails": emails}
+
+@app.get("/health")
+def get_health():
+    return {"Status":"ok"}
 
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
