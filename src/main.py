@@ -42,7 +42,7 @@ def verify_password(x_app_password :str =Header(None)):
       raise HTTPException(status_code=401,detail="Error Occured")
                        
     
-@app.post("/classify",dependencies=[Depends(verify_password)])
+@app.post("/classify")
 def classifier(req:EmailRequest):
     text = (req.subject + " " + req.body).strip()
     if not text:
@@ -115,11 +115,11 @@ def get_emails(n: int = 10):
         results.append(result)
 
     return {"emails": results}
+@app.get("/history",dependencies=[Depends(verify_password)])
+def get_history(limit: int = 50 ,label:str=None):
+    emails=list_emails(limit=limit,label=label)
+    return {"emails":emails}
 
-@app.get("/history", dependencies=[Depends(verify_password)])
-def get_history(limit: int = 50, label: str = None):
-    emails = list_emails(limit=limit, label=label)
-    return {"emails": emails}
 
 @app.get("/health")
 def get_health():

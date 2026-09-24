@@ -58,11 +58,11 @@
   </div>
 
   <script>
-    let password =localStorage.getItem("appPassword")
-    if(!password){
-      password=prompt("Enter password")
-      localStorage.setItem("appPassword",password)
-    }
+    // let password =localStorage.getItem("appPassword")
+    // if(!password){
+    //   password=prompt("Enter password")
+    //   localStorage.setItem("appPassword",password)
+    // }
     async function api_fetch(url,options={}) {
        const password = localStorage.getItem("appPassword");
 
