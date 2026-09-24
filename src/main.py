@@ -114,9 +114,8 @@ def get_emails(n: int = 10):
         save_email(result)
         results.append(result)
 
-
-
     return {"emails": results}
+
 @app.get("/health")
 def get_health():
     return {"Status":"ok"}
