@@ -7,7 +7,7 @@ from src.gmail_auth import get_service, list_recent_emails
 from dateutil import parser as dateparser
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
-from src.storage import init_db,save_email
+from src.storage import init_db,save_email,list_emails
 import os
 
 
@@ -115,6 +115,11 @@ def get_emails(n: int = 10):
         results.append(result)
 
     return {"emails": results}
+
+@app.get("/history", dependencies=[Depends(verify_password)])
+def get_history(limit: int = 50, label: str = None):
+    emails = list_emails(limit=limit, label=label)
+    return {"emails": emails}
 
 @app.get("/health")
 def get_health():
