@@ -359,97 +359,167 @@
 
   <script>
 
-    // let password =localStorage.getItem("appPassword")
-    // if(!password){
-    //   password=prompt("Enter password")
-    //   localStorage.setItem("appPassword",password)
-    // }
+  function getPassword() {
+    let password = localStorage.getItem("appPassword");
 
-    async function api_fetch(url,options={}) {
-      const password = localStorage.getItem("appPassword");
-
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          ...options.headers,
-          "X-App-Password": password
-        }
-      });
-
-      return response;
+    if (password) {
+      return password;
     }
 
-    async function classify() {
-      const subject = document.getElementById("subject").value.trim();
-      const body = document.getElementById("body").value.trim();
-      const btn = document.getElementById("btn");
-      const errorEl = document.getElementById("error");
-      const resultEl = document.getElementById("result");
+    password = prompt("Owner password for inbox features");
 
-      if (!body) {
-        showError("Email body cannot be empty.");
+    if (!password || password.trim() === "") {
+      return null;
+    }
+
+    localStorage.setItem("appPassword", password);
+    return password;
+  }
+
+
+  async function api_fetch(url, options = {}, password = null) {
+    const headers = {
+      ...options.headers
+    };
+
+    if (password) {
+      headers["X-App-Password"] = password;
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
+
+    return response;
+  }
+
+
+  async function protectedFetch(url, options = {}) {
+    const password = getPassword();
+
+    if (!password) {
+      setInboxStatus("Owner-only");
+      return null;
+    }
+
+    const response = await api_fetch(url, options, password);
+
+    if (response.status === 401) {
+      localStorage.removeItem("appPassword");
+      setInboxStatus(
+        "Invalid password — click again to retry",
+        true
+      );
+      return null;
+    }
+
+    return response;
+  }
+
+
+  function setInboxStatus(message, isError = false) {
+    const status = document.getElementById("inbox-status");
+
+    status.textContent = message;
+    status.className = isError
+      ? "status status-error"
+      : "status";
+  }
+
+
+  async function loadHistory() {
+    const response = await protectedFetch("/history");
+
+    if (!response) {
+      return;
+    }
+
+    const text = await response.text();
+    setInboxStatus(text);
+  }
+
+
+  document
+    .getElementById("load-history-btn")
+    .addEventListener("click", loadHistory);
+
+
+  async function classify() {
+    const subject = document.getElementById("subject").value.trim();
+    const body = document.getElementById("body").value.trim();
+    const btn = document.getElementById("btn");
+    const errorEl = document.getElementById("error");
+    const resultEl = document.getElementById("result");
+
+    if (!body) {
+      showError("Email body cannot be empty.");
+      return;
+    }
+
+    errorEl.style.display = "none";
+    resultEl.style.display = "none";
+    btn.disabled = true;
+    btn.textContent = "Classifying...";
+
+    try {
+      const res = await api_fetch("/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, body })
+      });
+
+      if (!res.ok) {
+        const e = await res.json();
+        showError(e.detail || "Server error.");
         return;
       }
 
-      errorEl.style.display = "none";
-      resultEl.style.display = "none";
-      btn.disabled = true;
-      btn.textContent = "Classifying...";
+      const data = await res.json();
+      renderResult(data);
 
-      try {
-        const res = await api_fetch("/classify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ subject, body })
-        });
+    } catch (e) {
+      showError(
+        "Could not reach the server. Make sure uvicorn is running."
+      );
 
-        if (!res.ok) {
-          const e = await res.json();
-          showError(e.detail || "Server error.");
-          return;
-        }
-
-        const data = await res.json();
-        renderResult(data);
-
-      } catch (e) {
-        showError("Could not reach the server. Make sure uvicorn is running.");
-
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Classify";
-      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Classify";
     }
+  }
 
-    function renderResult(data) {
-      const badge = document.getElementById("label-badge");
 
-      badge.textContent = data.label;
-      badge.className = "badge badge-" + data.label;
+  function renderResult(data) {
+    const badge = document.getElementById("label-badge");
 
-      document.getElementById("confidence").textContent =
-        (data.confidence * 100).toFixed(0) + "% confidence";
+    badge.textContent = data.label;
+    badge.className = "badge badge-" + data.label;
 
-      document.getElementById("deadline").textContent =
-        data.deadline || "None detected";
+    document.getElementById("confidence").textContent =
+      (data.confidence * 100).toFixed(0) + "% confidence";
 
-      const ul = document.getElementById("actions");
+    document.getElementById("deadline").textContent =
+      data.deadline || "None detected";
 
-      ul.innerHTML = data.actions.length
-        ? data.actions.map(a => `<li>${a}</li>`).join("")
-        : "<li style='color:#71717a'>None detected</li>";
+    const ul = document.getElementById("actions");
 
-      document.getElementById("result").style.display = "block";
-    }
+    ul.innerHTML = data.actions.length
+      ? data.actions.map(a => `<li>${a}</li>`).join("")
+      : "<li style='color:#71717a'>None detected</li>";
 
-    function showError(msg) {
-      const el = document.getElementById("error");
+    document.getElementById("result").style.display = "block";
+  }
 
-      el.textContent = msg;
-      el.style.display = "block";
-    }
 
-  </script>
+  function showError(msg) {
+    const el = document.getElementById("error");
+
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+
+</script>
 
 </body>
 
