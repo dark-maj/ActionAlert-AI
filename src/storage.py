@@ -1,5 +1,5 @@
 import sqlite3, json, os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from contextlib import contextmanager
 
 # If DATABASE_URL is set (Render + Neon) we use Postgres, otherwise a local
@@ -77,6 +77,10 @@ def init_db():
             actions       TEXT,
             classified_at TEXT
         )""")
+        # /history sorts by classified_at and filters by label; retention
+        # cleanup also scans classified_at.
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_emails_classified_at ON emails(classified_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_emails_label ON emails(label)")
 
 
 def save_email(email):
@@ -115,6 +119,23 @@ def get_email(email_id):
     if row is None:
         return None
     return _row_to_dict(row)
+
+
+def delete_email(email_id):
+    """Delete one email; returns False if it didn't exist."""
+    with connect() as conn:
+        cur = conn.execute(_q("DELETE FROM emails WHERE id = ?"), (email_id,))
+        return cur.rowcount > 0
+
+
+def delete_older_than(days):
+    """Delete emails classified more than `days` ago; returns how many."""
+    # classified_at is always a UTC isoformat() string, so comparing the
+    # strings sorts the same way as comparing the dates.
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    with connect() as conn:
+        cur = conn.execute(_q("DELETE FROM emails WHERE classified_at < ?"), (cutoff,))
+        return cur.rowcount
 
 
 def list_emails(limit=50, label=None):
