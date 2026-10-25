@@ -123,6 +123,14 @@
       color: #15803d;
     }
 
+    tr.row-urgent td {
+      background: #fef2f2;
+    }
+
+    .muted {
+      color: #a1a1aa;
+    }
+
     .row {
       display: flex;
       align-items: center;
@@ -428,21 +436,177 @@
   }
 
 
+  // Rows currently shown in the table; the filter works on this list.
+  let currentEmails = [];
+
+
+  function makeCell(text) {
+    const td = document.createElement("td");
+
+    if (text) {
+      td.textContent = text;
+    } else {
+      td.textContent = "—";
+      td.className = "muted";
+    }
+
+    return td;
+  }
+
+
+  function formatDate(iso) {
+    if (!iso) {
+      return null;
+    }
+
+    const date = new Date(iso);
+    return isNaN(date) ? iso : date.toLocaleString();
+  }
+
+
+  function renderTable(emails) {
+    const tbody = document.getElementById("inbox-table-body");
+    tbody.replaceChildren();
+
+    if (emails.length === 0) {
+      const tr = document.createElement("tr");
+      const td = makeCell("No emails yet");
+      td.colSpan = 6;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
+    for (const email of emails) {
+      const tr = document.createElement("tr");
+
+      if (email.label === "urgent") {
+        tr.className = "row-urgent";
+      }
+
+      // Label column reuses the classifier badge styles.
+      const labelTd = document.createElement("td");
+      const badge = document.createElement("span");
+      badge.className = "badge badge-" + email.label;
+      badge.textContent = email.label;
+      labelTd.appendChild(badge);
+      tr.appendChild(labelTd);
+
+      // /history rows use "sender", /emails rows use "from".
+      tr.appendChild(makeCell(email.subject));
+      tr.appendChild(makeCell(email.sender || email.from));
+      tr.appendChild(makeCell(email.deadline));
+      tr.appendChild(makeCell((email.actions || []).join(", ")));
+      tr.appendChild(makeCell(formatDate(email.classified_at)));
+
+      tbody.appendChild(tr);
+    }
+  }
+
+
+  function applyFilter() {
+    const label = document.getElementById("label-filter").value;
+
+    const visible = label === "all"
+      ? currentEmails
+      : currentEmails.filter(e => e.label === label);
+
+    renderTable(visible);
+    return visible.length;
+  }
+
+
+  async function readError(response) {
+    try {
+      const data = await response.json();
+      return data.detail || "Server error.";
+    } catch {
+      return "Server error (" + response.status + ").";
+    }
+  }
+
+
   async function loadHistory() {
+    setInboxStatus("Loading history...");
+
     const response = await protectedFetch("/history");
 
     if (!response) {
       return;
     }
 
-    const text = await response.text();
-    setInboxStatus(text);
+    if (!response.ok) {
+      setInboxStatus(await readError(response), true);
+      return;
+    }
+
+    const data = await response.json();
+    currentEmails = data.emails;
+
+    const shown = applyFilter();
+    setInboxStatus(
+      "Showing " + shown + " of " + currentEmails.length + " saved emails"
+    );
+  }
+
+
+  async function fetchNewEmails() {
+    const btn = document.getElementById("fetch-emails-btn");
+    btn.disabled = true;
+    btn.textContent = "Fetching...";
+    setInboxStatus("Fetching and classifying new emails from Gmail...");
+
+    try {
+      const response = await protectedFetch("/emails?n=10");
+
+      if (!response) {
+        return;
+      }
+
+      if (!response.ok) {
+        setInboxStatus(await readError(response), true);
+        return;
+      }
+
+      // /emails saves every email it classifies, so reloading history
+      // shows the new ones together with everything saved before.
+      const data = await response.json();
+      await loadHistory();
+      setInboxStatus(
+        "Classified " + data.emails.length + " new emails. " +
+        document.getElementById("inbox-status").textContent
+      );
+
+    } catch (e) {
+      setInboxStatus("Could not reach the server.", true);
+
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Fetch new emails";
+    }
   }
 
 
   document
     .getElementById("load-history-btn")
     .addEventListener("click", loadHistory);
+
+  document
+    .getElementById("fetch-emails-btn")
+    .addEventListener("click", fetchNewEmails);
+
+  document
+    .getElementById("label-filter")
+    .addEventListener("change", () => {
+      if (currentEmails.length === 0) {
+        return;
+      }
+
+      const shown = applyFilter();
+      setInboxStatus(
+        "Showing " + shown + " of " + currentEmails.length + " saved emails"
+      );
+    });
 
 
   async function classify() {
@@ -504,9 +668,20 @@
 
     const ul = document.getElementById("actions");
 
-    ul.innerHTML = data.actions.length
-      ? data.actions.map(a => `<li>${a}</li>`).join("")
-      : "<li style='color:#71717a'>None detected</li>";
+    ul.replaceChildren();
+
+    if (data.actions.length) {
+      for (const action of data.actions) {
+        const li = document.createElement("li");
+        li.textContent = action;
+        ul.appendChild(li);
+      }
+    } else {
+      const li = document.createElement("li");
+      li.textContent = "None detected";
+      li.style.color = "#71717a";
+      ul.appendChild(li);
+    }
 
     document.getElementById("result").style.display = "block";
   }
