@@ -1,213 +1,128 @@
-# 📧 AI-Powered Gmail Email Classifier
+# 🔔 ActionAlert AI
 
-An intelligent Gmail Email Classifier built using Machine Learning and AI to automatically categorize emails based on their content, priority, and importance. The system analyzes incoming emails and predicts categories such as Spam, Promotions, Social, Important, Work, Personal, and more.
+ActionAlert AI reads your Gmail inbox, flags the emails that need action, pulls out the deadline and the to-dos, and sends you a Telegram alert when something urgent is due within 24 hours.
 
----
-
-# 🚀 Features
-
-* 🔍 Automatic email classification using Machine Learning
-* 📊 Confidence score prediction for each email
-* ⚡ Priority score generation
-* 🧠 NLP-based text preprocessing
-* 📁 Categorization into multiple labels
-* 📬 Gmail API integration
-* 📈 Dashboard for visualization and analytics
-* 🔐 Secure authentication using OAuth
-* 🌐 Full-stack web application
+**Live demo:** <https://actionalert-ai.onrender.com>. The classifier is public, so you can paste any email and try it. The inbox dashboard needs the owner password. The free Render plan sleeps when idle, so the first request can take about 30 seconds.
 
 ---
 
-# 🛠️ Tech Stack
+## Features
 
-## Frontend
-
-* React.js
-* Tailwind CSS
-* Axios
-
-## Backend
-
-* FASTAPI
-* Python (ML Service)
-
-## Machine Learning
-
-* Scikit-learn
-* Pandas
-* NumPy
-* NLTK / spaCy
-* TF-IDF Vectorization
-* Logistic Regression / Naive Bayes
-
-## Database
-
-* Firebase Firestore / MongoDB
-
-## APIs
-
-* Gmail API
-* Google OAuth 2.0
+- **Urgency classifier:** TF-IDF + Logistic Regression (scikit-learn) labels each email `urgent` or `not_urgent` with a confidence score.
+- **Deadline and action extraction:** Gemini reads the email and returns the deadline plus a list of action items as JSON.
+- **Gmail integration:** read-only OAuth access (`gmail.readonly`) fetches and classifies your latest emails.
+- **Telegram alerts:** urgent emails with a deadline in the next 24h are pushed to your phone, once per email.
+- **Inbox dashboard:** history table with a label filter, urgent-row highlighting, a "Fetch new emails" button and per-row delete.
+- **Persistent storage:** Postgres (Neon) in production, SQLite locally, chosen automatically.
+- **Retention:** emails older than `RETENTION_DAYS` (default 30) are cleaned up automatically.
+- **Owner-only inbox:** `/emails` and `/history` require an `X-App-Password` header. `/classify` stays public for demos.
 
 ---
 
-# 🧠 Machine Learning Workflow
+## Architecture
 
-1. Collect email dataset
-2. Preprocess email text
-3. Remove stopwords and punctuation
-4. Convert text using TF-IDF Vectorizer
-5. Train classification model
-6. Predict category and confidence score
-7. Assign priority level
-8. Display results on dashboard
-
----
-
-# 📂 Project Structure
-
-```bash
-gmail-email-classifier/
-│
-├── frontend/                # React frontend
-├── backend/                 # Express backend
-├── ml-model/                # ML model and preprocessing
-├── dataset/                 # Training dataset
-├── routes/                  # API routes
-├── controllers/             # Backend controllers
-├── utils/                   # Helper functions
-├── public/                  # Public assets
-├── package.json
-└── README.md
+```
+                    ┌──────────────────────────────┐
+ Browser ──────────▶│ FastAPI (src/main.py)        │
+ (frontend/         │                              │
+  index.html)       │  /classify ─┐                │
+                    │  /emails  ──┼─▶ classifier ──┼──▶ urgent? ──▶ Gemini extractor
+ cron-job.org ─────▶│  /history   │   (TF-IDF+LR)  │                 (deadline, actions)
+ (/health, /emails) │  /health    │                │                        │
+                    └─────────────┼────────────────┘                        ▼
+                                  │                       deadline < 24h ──▶ Telegram
+                     Gmail API ◀──┘ (/emails only)
+                                  │
+                                  ▼
+                     Postgres (Neon)  /  SQLite (local)
 ```
 
----
-
-# ⚙️ Installation
-
-## 1️⃣ Clone the Repository
-
-```bash
-git clone https://github.com/your-username/gmail-email-classifier.git
-cd gmail-email-classifier
-```
-
----
-
-## 2️⃣ Install Frontend Dependencies
-
-```bash
-cd frontend
-npm install
-```
+| File | Role |
+|---|---|
+| `src/main.py` | FastAPI app, routes, password check, alert logic |
+| `src/classifier.py` | Text cleaning, training and prediction |
+| `src/extractor.py` | Gemini prompt for deadline and action items |
+| `src/gmail_auth.py` | Gmail OAuth and fetching recent emails |
+| `src/storage.py` | Postgres/SQLite storage with the same SQL for both |
+| `src/notifier.py` | Telegram alerts, with a console fallback |
+| `frontend/index.html` | Single-page UI (vanilla JS, no build step) |
+| `test_train.py` | Retrains `models/classifier.pkl` from `data/emails.csv` |
 
 ---
 
-## 3️⃣ Install Backend Dependencies
+## API
 
-```bash
-cd backend
-npm install
-```
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/classify` | public | Body `{"subject": "...", "body": "..."}` → label, confidence, deadline, actions |
+| `GET` | `/emails?n=10` | password | Fetch, classify, save and alert on the latest `n` Gmail emails |
+| `GET` | `/history?limit=50&label=urgent` | password | Saved emails, newest first |
+| `DELETE` | `/history/{id}` | password | Remove one saved email |
+| `GET` | `/health` | public | Health check used by Render and the keep-alive ping |
 
 ---
 
-## 4️⃣ Install Python Dependencies
+## Run locally
+
+Requires Python 3.10+.
 
 ```bash
+git clone https://github.com/dark-maj/ActionAlert-AI.git
+cd ActionAlert-AI
+python -m venv venv
+venv\Scripts\activate          # macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
 ```
 
----
+1. Create a `.env` file (see the table below). `GEMINI_API_KEY` is the only value the classifier page needs.
+2. For the Gmail features, download an OAuth **Desktop app** client from Google Cloud as `credentials.json` into the project root. The first fetch opens a browser to sign in and saves `token.json`.
+3. Start the server:
 
-# 🔑 Environment Variables
+   ```bash
+   python -m uvicorn src.main:app --reload
+   ```
 
-Create a `.env` file in the backend folder.
+4. Open <http://127.0.0.1:8000>.
 
-```env
-PORT=5000
-MONGO_URI=your_database_url
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-JWT_SECRET=your_secret_key
-```
+To retrain the classifier after editing `data/emails.csv`, run `python test_train.py`.
 
 ---
 
-# ▶️ Running the Project
+## Environment variables
 
-## Start Frontend
+| Variable | Required | Description |
+|---|---|---|
+| `GEMINI_API_KEY` | yes | Google AI Studio key for deadline and action extraction |
+| `APP_PASSWORD` | in production | Owner password for `/emails`, `/history` and delete. If unset, those routes are open |
+| `GMAIL_TOKEN_JSON` | in production | Contents of `token.json`. Locally the file is used instead |
+| `DATABASE_URL` | no | Postgres connection string (e.g. Neon, with `?sslmode=require`). If unset, SQLite is used |
+| `DB_PATH` | no | SQLite file path, default `data/actionalert.db` |
+| `TELEGRAM_BOT_TOKEN` | no | Bot token from @BotFather. If unset, alerts are printed to the console |
+| `TELEGRAM_CHAT_ID` | no | Your chat ID (send the bot a message, then check `getUpdates`) |
+| `RETENTION_DAYS` | no | Delete saved emails older than this many days, default `30`. `0` keeps everything |
 
-```bash
-cd frontend
-npm run dev
-```
-
-## Start Backend
-
-```bash
-cd backend
-npm start
-```
-
-## Run ML Model
-
-```bash
-python app.py
-```
+Never commit `.env`, `credentials.json` or `token.json`; they're in `.gitignore`.
 
 ---
 
-# 📊 Model Performance
+## Deploy (Render)
 
-| Metric    | Score |
-| --------- | ----- |
-| Accuracy  | 94%   |
-| Precision | 92%   |
-| Recall    | 91%   |
-| F1-Score  | 91.5% |
+`render.yaml` defines the service: `pip install -r requirements.txt`, then `uvicorn src.main:app`, with `/health` as the health check. Set the secret variables above in Render → Environment.
 
----
-
-# 📸 Screenshots
-
-## Dashboard
-
-* Email analytics
-* Priority visualization
-* Category distribution
-
-## Classification View
-
-* Predicted category
-* Confidence score
-* Priority level
+Optional cron-job.org jobs:
+- `GET /health` every 10 minutes keeps the free instance awake.
+- `GET /emails?n=10` every 30 minutes, with the header `X-App-Password`, checks the inbox automatically, so urgent alerts reach Telegram without opening the dashboard.
 
 ---
 
-# 🔮 Future Improvements
+## Limitations and next steps
 
-* Real-time email monitoring
-* AI-generated email summaries
-* Smart reply suggestions
-* Multi-language support
-* Deep Learning integration using Transformers
-* Mobile application support
+- The classifier is trained on a small hand-labelled set (92 emails, balanced between the two labels), so treat its confidence as a rough signal. More labelled data is the biggest improvement available.
+- The Google OAuth app is unverified, which is fine for a single owner but not for other users.
+- Ideas: a Telegram chat bot (paste an email and get the classification back), "ignore" instead of delete, and moving from `google-generativeai` to the newer `google-genai` SDK.
 
 ---
 
-# 👨‍💻 Contributors
+## License
 
-* Jaahnavi Yeturi
-
----
-
-# 📜 License
-
-This project is licensed under the MIT License.
-
----
-
-# ⭐ Support
-
-If you like this project, give it a ⭐ on GitHub!
+MIT, see [LICENSE](LICENSE).

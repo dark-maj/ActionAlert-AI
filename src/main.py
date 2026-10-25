@@ -7,16 +7,28 @@ from src.gmail_auth import get_service, list_recent_emails
 from dateutil import parser as dateparser
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
-from src.storage import init_db,save_email,list_emails
+from src.storage import init_db,save_email,get_email,list_emails,delete_email,delete_older_than
+from src.notifier import send_alert
 import os
+import secrets
 
 
 
 
-app=FastAPI()
+def cleanup_old_emails():
+    # Keep the database small: drop emails older than RETENTION_DAYS
+    # (default 30). Set it to 0 to keep everything.
+    days = int(os.getenv("RETENTION_DAYS", "30"))
+    if days > 0:
+        removed = delete_older_than(days)
+        if removed:
+            print(f"Retention: removed {removed} emails older than {days} days")
+
+
 @asynccontextmanager
-async def  lifespan(app):
-    db=init_db()
+async def lifespan(app):
+    init_db()
+    cleanup_old_emails()
     yield
 app = FastAPI(lifespan=lifespan)
 
@@ -31,17 +43,16 @@ class ClassifyResponse(BaseModel):
     confidence: float
     deadline: str | None
     actions: list[str]
-def verify_password(x_app_password :str =Header(None)):
-    password=os.getenv("APP_PASSWORD")
-    if password == x_app_password :
-        return 
-    elif password==None:
+def verify_password(x_app_password: str = Header(None)):
+    # No APP_PASSWORD set (local dev) means the inbox routes are open.
+    password = os.getenv("APP_PASSWORD")
+    if password is None:
         return
-       
-    else:
-      raise HTTPException(status_code=401,detail="Error Occured")
-                       
-    
+    # compare_digest takes the same time whether the guess is close or not.
+    if x_app_password is None or not secrets.compare_digest(password, x_app_password):
+        raise HTTPException(status_code=401, detail="Invalid or missing password")
+
+
 @app.post("/classify")
 def classifier(req:EmailRequest):
     text = (req.subject + " " + req.body).strip()
@@ -90,14 +101,22 @@ def get_emails(n: int = 10):
             deadline = extracted.get("deadline")
             actions = extracted.get("actions", [])
 
-        if str(label[0]) == "urgent" and deadline:
+        # Only alert the first time we see an email, so repeated fetches
+        # (and the 30-min cron) don't resend the same alert.
+        is_new = get_email(email["id"]) is None
+        if str(label[0]) == "urgent" and deadline and is_new:
             try:
                 deadline_dt = dateparser.parse(deadline, fuzzy=True)
                 if deadline_dt:
                     deadline_dt = deadline_dt.replace(tzinfo=timezone.utc)
                     hours_until = (deadline_dt - datetime.now(timezone.utc)).total_seconds() / 3600
                     if hours_until <= 24:
-                        print(f"[ALERT] Urgent email from {email['from']} - deadline in {hours_until:.1f}h: {deadline}")
+                        send_alert(
+                            f"🚨 Urgent email - deadline in {hours_until:.1f}h\n"
+                            f"From: {email['from']}\n"
+                            f"Subject: {email['subject']}\n"
+                            f"Deadline: {deadline}"
+                        )
             except Exception:
                 pass
 
@@ -114,11 +133,18 @@ def get_emails(n: int = 10):
         save_email(result)
         results.append(result)
 
+    cleanup_old_emails()
     return {"emails": results}
 @app.get("/history",dependencies=[Depends(verify_password)])
 def get_history(limit: int = 50 ,label:str=None):
     emails=list_emails(limit=limit,label=label)
     return {"emails":emails}
+
+@app.delete("/history/{email_id}",dependencies=[Depends(verify_password)])
+def remove_email(email_id: str):
+    if not delete_email(email_id):
+        raise HTTPException(status_code=404, detail="Email not found")
+    return {"deleted": email_id}
 
 
 @app.get("/health")

@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ActionAlert AI</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔔</text></svg>" />
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -129,6 +130,23 @@
 
     .muted {
       color: #a1a1aa;
+    }
+
+    button.delete-btn {
+      width: auto;
+      padding: 0.3rem 0.5rem;
+      background: transparent;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    button.delete-btn:hover {
+      background: #fee2e2;
+    }
+
+    button.delete-btn:disabled {
+      background: transparent;
+      opacity: 0.4;
     }
 
     .row {
@@ -352,6 +370,7 @@
             <th>Deadline</th>
             <th>Actions</th>
             <th>Classified at</th>
+            <th></th>
           </tr>
         </thead>
 
@@ -471,7 +490,7 @@
     if (emails.length === 0) {
       const tr = document.createElement("tr");
       const td = makeCell("No emails yet");
-      td.colSpan = 6;
+      td.colSpan = 7;
       tr.appendChild(td);
       tbody.appendChild(tr);
       return;
@@ -499,7 +518,55 @@
       tr.appendChild(makeCell((email.actions || []).join(", ")));
       tr.appendChild(makeCell(formatDate(email.classified_at)));
 
+      const deleteTd = document.createElement("td");
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.textContent = "🗑";
+      deleteBtn.title = "Remove this email";
+      deleteBtn.setAttribute("aria-label", "Remove " + (email.subject || "email"));
+      deleteBtn.addEventListener("click", () => deleteEmail(email, deleteBtn));
+      deleteTd.appendChild(deleteBtn);
+      tr.appendChild(deleteTd);
+
       tbody.appendChild(tr);
+    }
+  }
+
+
+  async function deleteEmail(email, btn) {
+    if (!confirm("Remove \"" + (email.subject || "this email") + "\" from history?")) {
+      return;
+    }
+
+    btn.disabled = true;
+
+    try {
+      const response = await protectedFetch(
+        "/history/" + encodeURIComponent(email.id),
+        { method: "DELETE" }
+      );
+
+      if (!response) {
+        return;
+      }
+
+      // 404 means it was already gone, so drop it from the table either way.
+      if (!response.ok && response.status !== 404) {
+        setInboxStatus(await readError(response), true);
+        return;
+      }
+
+      currentEmails = currentEmails.filter(e => e.id !== email.id);
+      const shown = applyFilter();
+      setInboxStatus(
+        "Removed. Showing " + shown + " of " + currentEmails.length + " saved emails"
+      );
+
+    } catch (e) {
+      setInboxStatus("Could not reach the server.", true);
+
+    } finally {
+      btn.disabled = false;
     }
   }
 
