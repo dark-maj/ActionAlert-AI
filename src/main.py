@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from src.storage import init_db,save_email,get_email,list_emails,delete_email,delete_older_than
 from src.notifier import send_alert
 import os
+import secrets
 
 
 
@@ -24,10 +25,9 @@ def cleanup_old_emails():
             print(f"Retention: removed {removed} emails older than {days} days")
 
 
-app=FastAPI()
 @asynccontextmanager
-async def  lifespan(app):
-    db=init_db()
+async def lifespan(app):
+    init_db()
     cleanup_old_emails()
     yield
 app = FastAPI(lifespan=lifespan)
@@ -43,17 +43,16 @@ class ClassifyResponse(BaseModel):
     confidence: float
     deadline: str | None
     actions: list[str]
-def verify_password(x_app_password :str =Header(None)):
-    password=os.getenv("APP_PASSWORD")
-    if password == x_app_password :
-        return 
-    elif password==None:
+def verify_password(x_app_password: str = Header(None)):
+    # No APP_PASSWORD set (local dev) means the inbox routes are open.
+    password = os.getenv("APP_PASSWORD")
+    if password is None:
         return
-       
-    else:
-      raise HTTPException(status_code=401,detail="Error Occured")
-                       
-    
+    # compare_digest takes the same time whether the guess is close or not.
+    if x_app_password is None or not secrets.compare_digest(password, x_app_password):
+        raise HTTPException(status_code=401, detail="Invalid or missing password")
+
+
 @app.post("/classify")
 def classifier(req:EmailRequest):
     text = (req.subject + " " + req.body).strip()
