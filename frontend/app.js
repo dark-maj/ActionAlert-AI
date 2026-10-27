@@ -131,14 +131,17 @@ function initNavbar() {
 
   if (mobileToggle && mobileDrawer) {
     mobileToggle.addEventListener("click", () => {
-      const isHidden = mobileDrawer.style.display === "none" || !mobileDrawer.style.display;
-      mobileDrawer.style.display = isHidden ? "flex" : "none";
+      const isOpen = mobileDrawer.classList.toggle("open");
+      mobileDrawer.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      mobileToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
     });
 
     // Close mobile drawer when clicking any link
     mobileDrawer.querySelectorAll("a").forEach(link => {
       link.addEventListener("click", () => {
-        mobileDrawer.style.display = "none";
+        mobileDrawer.classList.remove("open");
+        mobileDrawer.setAttribute("aria-hidden", "true");
+        mobileToggle.setAttribute("aria-expanded", "false");
       });
     });
   }
@@ -180,7 +183,7 @@ function initHeroMockup() {
         data.actions.forEach(act => {
           const chip = document.createElement("span");
           chip.className = "action-item";
-          chip.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg> ${escapeHtml(act)}`;
+          chip.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg> ${escapeHtml(act)}`;
           inspectorActions.appendChild(chip);
         });
       } else {
@@ -200,22 +203,16 @@ function initHeroMockup() {
   // Default selection: Urgent email
   selectEmail(0);
 
-  // Inbound simulation button
   if (simulateBtn) {
     simulateBtn.addEventListener("click", () => {
       simulateBtn.disabled = true;
       simulateBtn.innerHTML = `<span class="pulse-dot"></span> Analyzing stream...`;
 
       setTimeout(() => {
+        const randomIndex = Math.floor(Math.random() * HERO_EMAILS.length);
+        selectEmail(randomIndex);
         simulateBtn.disabled = false;
-        simulateBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Simulate Inbound`;
-        selectEmail(0);
-        // Trigger subtle flash on top card
-        const topCard = emailCards[0];
-        topCard.style.boxShadow = "0 0 30px rgba(251, 113, 133, 0.45)";
-        setTimeout(() => {
-          topCard.style.boxShadow = "";
-        }, 1200);
+        simulateBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Simulate Inbound`;
       }, 700);
     });
   }
@@ -226,15 +223,17 @@ function initHeroMockup() {
    ========================================================= */
 function initScrollReveal() {
   const reveals = document.querySelectorAll(".reveal");
+  if (!reveals.length) return;
 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add("visible");
+        observer.unobserve(entry.target);
       }
     });
   }, {
-    threshold: 0.1,
+    threshold: 0.12,
     rootMargin: "0px 0px -40px 0px"
   });
 
@@ -242,21 +241,23 @@ function initScrollReveal() {
 }
 
 /* =========================================================
-   4. HOW IT WORKS CONNECTOR LINE
+   4. HOW IT WORKS STEP ANIMATION
    ========================================================= */
 function initStepsAnimation() {
+  const stepCards = document.querySelectorAll(".step-card");
   const section = document.getElementById("how-it-works");
-  const path = document.getElementById("stepsProgressLine");
-
-  if (!section || !path) return;
+  if (!section || !stepCards.length) return;
 
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        path.classList.add("animated");
-      }
-    });
-  }, { threshold: 0.25 });
+    if (entries[0].isIntersecting) {
+      stepCards.forEach((card, i) => {
+        setTimeout(() => {
+          card.classList.add("step-in-view");
+        }, i * 180);
+      });
+      observer.unobserve(section);
+    }
+  }, { threshold: 0.2 });
 
   observer.observe(section);
 }
@@ -265,7 +266,6 @@ function initStepsAnimation() {
    5. BENTO GRID INTERACTIONS
    ========================================================= */
 function initBentoInteractions() {
-  // Focused Inbox toggle in Bento Card 4
   const filterBtns = document.querySelectorAll(".bento-inbox-ui .filter-btn");
   const noisyItems = document.querySelectorAll(".bento-inbox-ui .item-noisy");
 
@@ -305,18 +305,25 @@ function initPipelineVisualization() {
   function loadPreset(preset) {
     currentPreset = preset;
     if (inputEl) {
-      inputEl.value = `${preset.subject}: ${preset.body}`;
+      inputEl.value = preset.body;
     }
-    updatePipelineDisplay(preset);
+    updatePipelineDisplay(preset, false);
   }
 
-  function updatePipelineDisplay(p) {
+  function updatePipelineDisplay(p, isOfflineDemo = false) {
     if (stage1Text) {
-      stage1Text.innerHTML = `<strong>Subject:</strong> ${escapeHtml(p.subject)}<br/><span style="color:#94a3b8;font-size:0.7rem;">Length: ${p.body ? p.body.length : 0} chars</span>`;
+      const offlineNote = isOfflineDemo
+        ? `<span style="display:inline-block;font-size:0.62rem;color:var(--text-muted);background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;border:1px solid var(--border-subtle);margin-bottom:4px;">offline demo</span><br/>`
+        : "";
+      const subjectLine = p.subject ? `<strong>Subject:</strong> ${escapeHtml(p.subject)}<br/>` : "";
+      stage1Text.innerHTML = `${offlineNote}${subjectLine}<span style="color:#94a3b8;font-size:0.7rem;">Length: ${p.body ? p.body.length : 0} chars</span>`;
     }
 
     if (stage2Tokens) {
-      stage2Tokens.innerHTML = (p.tokens || []).map(t => 
+      const tokens = (p.tokens && p.tokens.length > 0)
+        ? p.tokens
+        : (p.body ? p.body.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2).slice(0, 5) : []);
+      stage2Tokens.innerHTML = tokens.map(t => 
         `<span style="background:rgba(34,211,238,0.15);color:#22d3ee;padding:1px 5px;border-radius:3px;margin:2px;display:inline-block;">${escapeHtml(t)}</span>`
       ).join(" ");
     }
@@ -325,10 +332,11 @@ function initPipelineVisualization() {
       const isUrgent = p.label === "urgent";
       const color = isUrgent ? "var(--accent-coral)" : "var(--accent-emerald)";
       const bg = isUrgent ? "rgba(251,113,133,0.15)" : "rgba(52,211,153,0.15)";
+      const labelText = isUrgent ? "URGENT" : "NOT URGENT";
       stage3Model.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <span>LR Classification:</span>
-          <span style="font-weight:700;color:${color};background:${bg};padding:1px 6px;border-radius:4px;">${escapeHtml(p.label ? p.label.toUpperCase() : "")}</span>
+          <span>Model Inference:</span>
+          <span style="font-weight:700;color:${color};background:${bg};padding:1px 6px;border-radius:4px;">${labelText}</span>
         </div>
         <div style="font-size:0.7rem;color:#94a3b8;">Confidence: ${(p.confidence * 100).toFixed(0)}%</div>
         <div style="font-size:0.68rem;color:#64748b;margin-top:2px;">TF-IDF Matrix: 92 features</div>
@@ -336,16 +344,17 @@ function initPipelineVisualization() {
     }
 
     if (stage4Actions) {
-      if (p.actions && p.actions.length > 0) {
-        stage4Actions.innerHTML = `
-          <div style="color:var(--accent-coral-light);font-size:0.7rem;margin-bottom:3px;font-weight:600;">
-            ⚡ Deadline: ${escapeHtml(p.deadline)}
-          </div>
-          <div style="font-size:0.7rem;color:#cbd5e1;">
-            ${p.actions.map(a => `• ${escapeHtml(a)}`).join("<br/>")}
-          </div>
-          <div style="font-size:0.65rem;color:#38bdf8;margin-top:4px;">📲 Telegram Alert: Queued</div>
-        `;
+      if (p.deadline || (p.actions && p.actions.length > 0)) {
+        const deadlineHtml = p.deadline
+          ? `<div style="color:var(--accent-coral-light);font-size:0.7rem;margin-bottom:3px;font-weight:600;">⚡ Deadline: ${escapeHtml(p.deadline)}</div>`
+          : "";
+        const actionsHtml = (p.actions && p.actions.length > 0)
+          ? `<div style="font-size:0.7rem;color:#cbd5e1;">${p.actions.map(a => `• ${escapeHtml(a)}`).join("<br/>")}</div>`
+          : `<div style="font-size:0.7rem;color:#94a3b8;">No actions detected</div>`;
+        const alertHtml = p.label === "urgent"
+          ? `<div style="font-size:0.65rem;color:#38bdf8;margin-top:4px;">📲 Telegram Alert: Queued</div>`
+          : "";
+        stage4Actions.innerHTML = `${deadlineHtml}${actionsHtml}${alertHtml}`;
       } else {
         stage4Actions.innerHTML = `
           <div style="color:#64748b;font-size:0.7rem;">No urgent deadline</div>
@@ -368,44 +377,55 @@ function initPipelineVisualization() {
       runBtn.disabled = true;
       runBtn.innerHTML = `<span class="pulse-dot"></span> Processing...`;
 
+      // 5s waking server timer for Render
+      const wakingTimer = setTimeout(() => {
+        runBtn.innerHTML = `<span class="pulse-dot"></span> Waking server, this can take ~30s…`;
+      }, 5000);
+
       // Animate stages sequentially
       for (let i = 0; i < nodes.length; i++) {
         nodes.forEach(n => n.classList.remove("active-stage"));
         nodes[i].classList.add("active-stage");
-        await new Promise(r => setTimeout(r, 380));
+        await new Promise(r => setTimeout(r, 220));
       }
 
-      // Check if user entered custom text
-      const customText = inputEl ? inputEl.value.trim() : "";
-      if (customText) {
-        try {
-          const res = await fetch("/classify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ subject: "", body: customText })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            updatePipelineDisplay({
-              subject: customText.substring(0, 30) + "...",
-              body: customText,
-              label: data.label,
-              confidence: data.confidence,
-              deadline: data.deadline,
-              actions: data.actions || [],
-              tokens: customText.toLowerCase().split(/\s+/).slice(0, 5)
-            });
-          } else {
-            updatePipelineDisplay(currentPreset);
-          }
-        } catch (e) {
-          updatePipelineDisplay(currentPreset);
+      // Always POST current text to /classify
+      const rawText = inputEl ? inputEl.value.trim() : "";
+      const textToProcess = rawText || currentPreset.body;
+
+      try {
+        const res = await fetch("/classify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject: "", body: textToProcess })
+        });
+
+        if (!res.ok) {
+          throw new Error("HTTP error " + res.status);
         }
-      }
 
-      nodes.forEach(n => n.classList.remove("active-stage"));
-      runBtn.disabled = false;
-      runBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Run Through Pipeline`;
+        const data = await res.json();
+        updatePipelineDisplay({
+          subject: textToProcess.substring(0, 32) + (textToProcess.length > 32 ? "..." : ""),
+          body: textToProcess,
+          label: data.label,
+          confidence: data.confidence,
+          deadline: data.deadline,
+          actions: data.actions || [],
+          tokens: textToProcess.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 2).slice(0, 5)
+        }, false);
+      } catch (err) {
+        // Fallback to preset data with offline demo note
+        updatePipelineDisplay({
+          ...currentPreset,
+          body: textToProcess
+        }, true);
+      } finally {
+        clearTimeout(wakingTimer);
+        nodes.forEach(n => n.classList.remove("active-stage"));
+        runBtn.disabled = false;
+        runBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Run Through Pipeline`;
+      }
     });
   }
 
@@ -421,7 +441,9 @@ function activateStudioTab(tabId) {
   const tabPanes = document.querySelectorAll(".tab-pane");
 
   tabBtns.forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.tab === tabId);
+    const isActive = btn.dataset.tab === tabId;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
   });
 
   tabPanes.forEach(pane => {
@@ -466,6 +488,7 @@ function initActionButtons() {
     }
     if (bodyInput) {
       bodyInput.value = SAMPLE_URGENT_BODY;
+      bodyInput.dispatchEvent(new Event("input"));
     }
 
     // Focus the submit button
@@ -477,7 +500,12 @@ function initActionButtons() {
     // Close mobile drawer if opened
     const mobileDrawer = document.getElementById("mobileDrawer");
     if (mobileDrawer) {
-      mobileDrawer.style.display = "none";
+      mobileDrawer.classList.remove("open");
+      mobileDrawer.setAttribute("aria-hidden", "true");
+    }
+    const mobileToggle = document.getElementById("mobileToggle");
+    if (mobileToggle) {
+      mobileToggle.setAttribute("aria-expanded", "false");
     }
   }
 
@@ -496,7 +524,12 @@ function initActionButtons() {
     // Close mobile drawer if opened
     const mobileDrawer = document.getElementById("mobileDrawer");
     if (mobileDrawer) {
-      mobileDrawer.style.display = "none";
+      mobileDrawer.classList.remove("open");
+      mobileDrawer.setAttribute("aria-hidden", "true");
+    }
+    const mobileToggle = document.getElementById("mobileToggle");
+    if (mobileToggle) {
+      mobileToggle.setAttribute("aria-expanded", "false");
     }
   }
 
@@ -532,6 +565,16 @@ function initClassifierForm() {
 
   if (!form || !btn) return;
 
+  function updateSubmitState() {
+    const hasBody = bodyInput && bodyInput.value.trim().length > 0;
+    btn.disabled = !hasBody;
+  }
+
+  if (bodyInput) {
+    bodyInput.addEventListener("input", updateSubmitState);
+    updateSubmitState();
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -540,7 +583,7 @@ function initClassifierForm() {
 
     if (!body) {
       if (errorEl) {
-        errorEl.textContent = "Please enter email body text to classify.";
+        errorEl.textContent = "Email body cannot be empty.";
         errorEl.style.display = "block";
       }
       return;
@@ -550,6 +593,11 @@ function initClassifierForm() {
     btn.disabled = true;
     btn.innerHTML = `<span class="pulse-dot"></span> Analyzing with ML...`;
 
+    // 5s waking server timer for Render
+    const wakingTimer = setTimeout(() => {
+      btn.innerHTML = `<span class="pulse-dot"></span> Waking server, this can take ~30s…`;
+    }, 5000);
+
     try {
       const res = await fetch("/classify", {
         method: "POST",
@@ -558,24 +606,30 @@ function initClassifierForm() {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || "Server error while classifying email.");
+        let errorMsg = `Server error (${res.status})`;
+        try {
+          const errData = await res.json();
+          if (errData.detail) errorMsg = errData.detail;
+        } catch (_) {}
+
+        if (errorEl) {
+          errorEl.textContent = errorMsg;
+          errorEl.style.display = "block";
+        }
+        return;
       }
 
       const data = await res.json();
       renderLiveResult(data);
     } catch (err) {
-      // Local graceful fallback if API server is not running
-      const isUrgent = /outage|urgent|immediately|deadline|asap|down|emergency|today|breach|pay now/i.test(`${subject} ${body}`);
-      renderLiveResult({
-        label: isUrgent ? "urgent" : "not_urgent",
-        confidence: isUrgent ? 0.96 : 0.88,
-        deadline: isUrgent ? "Within 24 Hours (Estimated)" : null,
-        actions: isUrgent ? ["Review incident telemetry", "Respond to requester"] : []
-      });
+      if (errorEl) {
+        errorEl.textContent = "Could not reach the server. Make sure the backend is running.";
+        errorEl.style.display = "block";
+      }
     } finally {
-      btn.disabled = false;
-      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg> Classify Email`;
+      clearTimeout(wakingTimer);
+      updateSubmitState();
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg> Classify Email`;
     }
   });
 
@@ -627,11 +681,29 @@ function initClassifierForm() {
 function initInboxDashboard() {
   const loadBtn = document.getElementById("loadHistoryBtn");
   const fetchBtn = document.getElementById("fetchEmailsBtn");
+  const logoutBtn = document.getElementById("inboxLogoutBtn");
   const filterSelect = document.getElementById("inboxFilterSelect");
   const statusEl = document.getElementById("inboxStatusMsg");
   const tbody = document.getElementById("inboxTableBody");
 
   let currentEmails = [];
+
+  function updateDashboardStats(emails = []) {
+    const total = emails.length;
+    const urgent = emails.filter(e => e.label === "urgent").length;
+    const notUrgent = emails.filter(e => e.label === "not_urgent" || e.label === "low").length;
+    const withDeadline = emails.filter(e => e.deadline && e.deadline.trim() !== "" && e.deadline !== "None detected").length;
+
+    const statTotal = document.getElementById("statTotal");
+    const statUrgent = document.getElementById("statUrgent");
+    const statNotUrgent = document.getElementById("statNotUrgent");
+    const statDeadline = document.getElementById("statDeadline");
+
+    if (statTotal) statTotal.textContent = total;
+    if (statUrgent) statUrgent.textContent = urgent;
+    if (statNotUrgent) statNotUrgent.textContent = notUrgent;
+    if (statDeadline) statDeadline.textContent = withDeadline;
+  }
 
   function getPassword() {
     let password = localStorage.getItem("appPassword");
@@ -640,8 +712,8 @@ function initInboxDashboard() {
     password = prompt("Enter owner password to unlock private inbox operations:");
     if (!password || password.trim() === "") return null;
 
-    localStorage.setItem("appPassword", password);
-    return password;
+    localStorage.setItem("appPassword", password.trim());
+    return password.trim();
   }
 
   async function apiFetch(url, options = {}) {
@@ -652,15 +724,28 @@ function initInboxDashboard() {
     }
 
     const headers = { ...options.headers, "X-App-Password": password };
-    const res = await fetch(url, { ...options, headers });
 
-    if (res.status === 401) {
-      localStorage.removeItem("appPassword");
-      setStatus("Invalid password. Click again to retry.", true);
+    // 5s waking server timer for Render free tier
+    const wakingTimer = setTimeout(() => {
+      setStatus("Waking server, this can take ~30s…");
+    }, 5000);
+
+    try {
+      const res = await fetch(url, { ...options, headers });
+
+      if (res.status === 401) {
+        localStorage.removeItem("appPassword");
+        setStatus("Invalid password. Click again to retry.", true);
+        return null;
+      }
+
+      return res;
+    } catch (err) {
+      setStatus("Could not reach backend server.", true);
       return null;
+    } finally {
+      clearTimeout(wakingTimer);
     }
-
-    return res;
   }
 
   function setStatus(msg, isError = false) {
@@ -669,14 +754,39 @@ function initInboxDashboard() {
     statusEl.style.color = isError ? "var(--accent-coral)" : "var(--accent-cyan)";
   }
 
+  function showLoadingSpinner(msg = "Loading...") {
+    if (!tbody) return;
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center;padding:3rem 1rem;color:var(--text-secondary);">
+          <div style="display:inline-flex;flex-direction:column;align-items:center;gap:0.75rem;">
+            <div class="spinner-ring"></div>
+            <span style="font-size:0.85rem;color:var(--text-muted);">${escapeHtml(msg)}</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
   function renderTable(emails) {
     if (!tbody) return;
     tbody.innerHTML = "";
 
     if (!emails || emails.length === 0) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">No emails saved yet. Click "Load History" or "Fetch New Emails".</td>`;
-      tbody.appendChild(tr);
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align:center;padding:3.5rem 1rem;color:var(--text-muted);">
+            <div style="display:inline-flex;flex-direction:column;align-items:center;gap:0.6rem;">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-muted);opacity:0.6;" aria-hidden="true">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+              </svg>
+              <span style="font-weight:600;font-size:0.95rem;color:var(--text-secondary);">No emails found</span>
+              <span style="font-size:0.8rem;color:var(--text-muted);">Click "Load History" to view saved messages or "Fetch New Emails" to sync from Gmail.</span>
+            </div>
+          </td>
+        </tr>
+      `;
       return;
     }
 
@@ -700,8 +810,8 @@ function initInboxDashboard() {
         <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;">${actionsStr}</td>
         <td style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">${dateStr}</td>
         <td>
-          <button class="btn-trash" title="Delete email" data-id="${emailId}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <button class="btn-trash" title="Delete email" aria-label="Delete email: ${subjectStr}" data-id="${emailId}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
           </button>
         </td>
       `;
@@ -722,15 +832,18 @@ function initInboxDashboard() {
 
   async function loadHistory() {
     setStatus("Connecting to database & loading history...");
+    showLoadingSpinner("Loading email history from database...");
     try {
       const res = await apiFetch("/history");
       if (!res) return;
       if (!res.ok) {
         setStatus("Could not load history.", true);
+        renderTable([]);
         return;
       }
       const data = await res.json();
       currentEmails = data.emails || [];
+      updateDashboardStats(currentEmails);
       applyFilter();
     } catch (err) {
       setStatus("Could not reach backend server.", true);
@@ -740,24 +853,25 @@ function initInboxDashboard() {
   async function fetchNewEmails() {
     if (!fetchBtn) return;
     fetchBtn.disabled = true;
-    fetchBtn.textContent = "Fetching Gmail...";
+    fetchBtn.innerHTML = `<span class="pulse-dot"></span> Fetching...`;
     setStatus("Connecting to Gmail API and classifying latest messages...");
+    showLoadingSpinner("Fetching new emails from Gmail & running inference...");
 
     try {
       const res = await apiFetch("/emails?n=10");
       if (!res) return;
       if (!res.ok) {
-        setStatus("Gmail fetch failed.", true);
+        setStatus("Gmail fetch failed or server error.", true);
         return;
       }
       const data = await res.json();
-      setStatus(`Successfully classified ${data.emails ? data.emails.length : 0} new emails.`);
       await loadHistory();
+      setStatus(`Successfully classified ${data.emails ? data.emails.length : 0} new emails.`);
     } catch (err) {
       setStatus("Could not reach backend server.", true);
     } finally {
       fetchBtn.disabled = false;
-      fetchBtn.textContent = "Fetch New Emails";
+      fetchBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Fetch New Emails (Gmail)`;
     }
   }
 
@@ -766,9 +880,13 @@ function initInboxDashboard() {
 
     try {
       const res = await apiFetch(`/history/${encodeURIComponent(email.id)}`, { method: "DELETE" });
-      if (!res) return;
+      if (!res || !res.ok) {
+        setStatus("Delete failed.", true);
+        return;
+      }
 
       currentEmails = currentEmails.filter(e => e.id !== email.id);
+      updateDashboardStats(currentEmails);
       applyFilter();
       setStatus(`Removed email from database.`);
     } catch (err) {
@@ -779,4 +897,17 @@ function initInboxDashboard() {
   if (loadBtn) loadBtn.addEventListener("click", loadHistory);
   if (fetchBtn) fetchBtn.addEventListener("click", fetchNewEmails);
   if (filterSelect) filterSelect.addEventListener("change", applyFilter);
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("appPassword");
+      currentEmails = [];
+      updateDashboardStats([]);
+      renderTable([]);
+      setStatus("Logged out. Saved owner password cleared.");
+    });
+  }
+
+  // Initial stats calculation
+  updateDashboardStats([]);
 }
