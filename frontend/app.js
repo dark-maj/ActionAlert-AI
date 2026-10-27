@@ -2,6 +2,17 @@
  * ActionAlert AI - Client Application Logic & Interactions
  */
 
+// HTML Escaping Utility to prevent XSS injection
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // Sample Email Database for Hero Mockup & Interactive Pipeline
 const HERO_EMAILS = [
   {
@@ -157,9 +168,9 @@ function initHeroMockup() {
 
     if (inspectorReasoning) {
       if (data.label === "urgent") {
-        inspectorReasoning.innerHTML = `<strong>High Priority detected:</strong> Hard deadline <em>"${data.deadline}"</em> identified with high urgency indicators. Immediate triage required.`;
+        inspectorReasoning.innerHTML = `<strong>High Priority detected:</strong> Hard deadline <em>"${escapeHtml(data.deadline)}"</em> identified with high urgency indicators. Immediate triage required.`;
       } else if (data.label === "important") {
-        inspectorReasoning.innerHTML = `<strong>Important scheduling item:</strong> Calendar event confirmation required for <em>"${data.deadline}"</em>.`;
+        inspectorReasoning.innerHTML = `<strong>Important scheduling item:</strong> Calendar event confirmation required for <em>"${escapeHtml(data.deadline)}"</em>.`;
       } else {
         inspectorReasoning.innerHTML = `<strong>Low Priority:</strong> Informational broadcast detected. No action items or temporal deadlines identified.`;
       }
@@ -171,7 +182,7 @@ function initHeroMockup() {
         data.actions.forEach(act => {
           const chip = document.createElement("span");
           chip.className = "action-item";
-          chip.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg> ${act}`;
+          chip.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg> ${escapeHtml(act)}`;
           inspectorActions.appendChild(chip);
         });
       } else {
@@ -303,12 +314,12 @@ function initPipelineVisualization() {
 
   function updatePipelineDisplay(p) {
     if (stage1Text) {
-      stage1Text.innerHTML = `<strong>Subject:</strong> ${p.subject}<br/><span style="color:#94a3b8;font-size:0.7rem;">Length: ${p.body.length} chars</span>`;
+      stage1Text.innerHTML = `<strong>Subject:</strong> ${escapeHtml(p.subject)}<br/><span style="color:#94a3b8;font-size:0.7rem;">Length: ${p.body ? p.body.length : 0} chars</span>`;
     }
 
     if (stage2Tokens) {
-      stage2Tokens.innerHTML = p.tokens.map(t => 
-        `<span style="background:rgba(34,211,238,0.15);color:#22d3ee;padding:1px 5px;border-radius:3px;margin:2px;display:inline-block;">${t}</span>`
+      stage2Tokens.innerHTML = (p.tokens || []).map(t => 
+        `<span style="background:rgba(34,211,238,0.15);color:#22d3ee;padding:1px 5px;border-radius:3px;margin:2px;display:inline-block;">${escapeHtml(t)}</span>`
       ).join(" ");
     }
 
@@ -319,7 +330,7 @@ function initPipelineVisualization() {
       stage3Model.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
           <span>LR Classification:</span>
-          <span style="font-weight:700;color:${color};background:${bg};padding:1px 6px;border-radius:4px;">${p.label.toUpperCase()}</span>
+          <span style="font-weight:700;color:${color};background:${bg};padding:1px 6px;border-radius:4px;">${escapeHtml(p.label ? p.label.toUpperCase() : "")}</span>
         </div>
         <div style="font-size:0.7rem;color:#94a3b8;">Confidence: ${(p.confidence * 100).toFixed(0)}%</div>
         <div style="font-size:0.68rem;color:#64748b;margin-top:2px;">TF-IDF Matrix: 92 features</div>
@@ -330,10 +341,10 @@ function initPipelineVisualization() {
       if (p.actions && p.actions.length > 0) {
         stage4Actions.innerHTML = `
           <div style="color:var(--accent-coral-light);font-size:0.7rem;margin-bottom:3px;font-weight:600;">
-            ⚡ Deadline: ${p.deadline}
+            ⚡ Deadline: ${escapeHtml(p.deadline)}
           </div>
           <div style="font-size:0.7rem;color:#cbd5e1;">
-            ${p.actions.map(a => `• ${a}`).join("<br/>")}
+            ${p.actions.map(a => `• ${escapeHtml(a)}`).join("<br/>")}
           </div>
           <div style="font-size:0.65rem;color:#38bdf8;margin-top:4px;">📲 Telegram Alert: Queued</div>
         `;
@@ -598,7 +609,7 @@ function initClassifierForm() {
           li.style.gap = "0.5rem";
           li.style.fontSize = "0.85rem";
           li.style.color = "var(--text-primary)";
-          li.innerHTML = `<span style="color:var(--accent-cyan);">→</span> ${action}`;
+          li.innerHTML = `<span style="color:var(--accent-cyan);">→</span> ${escapeHtml(action)}`;
           resultActionsList.appendChild(li);
         });
       } else {
@@ -675,19 +686,23 @@ function initInboxDashboard() {
       const tr = document.createElement("tr");
       if (email.label === "urgent") tr.classList.add("row-urgent");
 
-      const labelBadge = `<span class="badge badge-${email.label}">${email.label}</span>`;
-      const dateStr = email.classified_at ? new Date(email.classified_at).toLocaleString() : "—";
-      const actionsStr = (email.actions && email.actions.length > 0) ? email.actions.join("; ") : "—";
+      const labelBadge = `<span class="badge badge-${escapeHtml(email.label)}">${escapeHtml(email.label)}</span>`;
+      const dateStr = email.classified_at ? escapeHtml(new Date(email.classified_at).toLocaleString()) : "—";
+      const actionsStr = (email.actions && email.actions.length > 0) ? escapeHtml(email.actions.join("; ")) : "—";
+      const subjectStr = email.subject ? escapeHtml(email.subject) : "(No subject)";
+      const senderStr = (email.sender || email.from) ? escapeHtml(email.sender || email.from) : "—";
+      const deadlineStr = email.deadline ? escapeHtml(email.deadline) : "—";
+      const emailId = escapeHtml(email.id);
 
       tr.innerHTML = `
         <td>${labelBadge}</td>
-        <td><strong>${email.subject || "(No subject)"}</strong></td>
-        <td>${email.sender || email.from || "—"}</td>
-        <td>${email.deadline || "—"}</td>
+        <td><strong>${subjectStr}</strong></td>
+        <td>${senderStr}</td>
+        <td>${deadlineStr}</td>
         <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;">${actionsStr}</td>
         <td style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">${dateStr}</td>
         <td>
-          <button class="btn-trash" title="Delete email" data-id="${email.id}">
+          <button class="btn-trash" title="Delete email" data-id="${emailId}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
           </button>
         </td>
