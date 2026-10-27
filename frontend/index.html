@@ -1,768 +1,1131 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ActionAlert AI</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔔</text></svg>" />
+  
+  <title>ActionAlert AI — Your inbox. Prioritized by intelligence.</title>
+  <meta name="description" content="ActionAlert AI uses machine learning to classify emails, surface urgent messages, extract actionable deadlines, and help you focus on what matters first." />
+  <meta name="keywords" content="AI email prioritization, email triage, machine learning inbox, urgent email alerts, NLP email classifier" />
+  <meta name="theme-color" content="#0B1020" />
 
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+  <!-- Open Graph -->
+  <meta property="og:title" content="ActionAlert AI — Your inbox. Prioritized by intelligence." />
+  <meta property="og:description" content="ActionAlert AI intelligently prioritizes your emails, surfaces urgent messages, and helps you focus on what actually needs your attention." />
+  <meta property="og:type" content="website" />
 
-    body {
-      font-family: system-ui, sans-serif;
-      background: #f4f4f5;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1.5rem;
-      padding: 2rem 1rem;
-    }
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      width: 100%;
-      max-width: 540px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    }
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%238B5CF6'/><stop offset='100%' stop-color='%2322D3EE'/></linearGradient></defs><rect width='100' height='100' rx='24' fill='%230B1020'/><circle cx='50' cy='50' r='30' fill='none' stroke='url(%23g)' stroke-width='8'/><circle cx='50' cy='50' r='12' fill='%23FB7185'/></svg>" />
 
-    .dashboard-card {
-      max-width: 1000px;
-    }
-
-    h1 {
-      font-size: 1.4rem;
-      font-weight: 700;
-      margin-bottom: 1.5rem;
-      color: #18181b;
-    }
-
-    label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #52525b;
-      margin-bottom: 0.4rem;
-    }
-
-    input,
-    textarea,
-    select {
-      width: 100%;
-      border: 1px solid #d4d4d8;
-      border-radius: 8px;
-      padding: 0.6rem 0.8rem;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    input:focus,
-    textarea:focus,
-    select:focus {
-      border-color: #6366f1;
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 120px;
-      margin-bottom: 1rem;
-    }
-
-    input {
-      margin-bottom: 1rem;
-    }
-
-    button {
-      width: 100%;
-      padding: 0.7rem;
-      background: #6366f1;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    button:hover {
-      background: #4f46e5;
-    }
-
-    button:disabled {
-      background: #a5b4fc;
-      cursor: not-allowed;
-    }
-
-    #result {
-      margin-top: 1.5rem;
-      display: none;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 0.25rem 0.75rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .badge-urgent {
-      background: #fee2e2;
-      color: #b91c1c;
-    }
-
-    .badge-not_urgent {
-      background: #dcfce7;
-      color: #15803d;
-    }
-
-    tr.row-urgent td {
-      background: #fef2f2;
-    }
-
-    .muted {
-      color: #a1a1aa;
-    }
-
-    button.delete-btn {
-      width: auto;
-      padding: 0.3rem 0.5rem;
-      background: transparent;
-      font-size: 1rem;
-      line-height: 1;
-    }
-
-    button.delete-btn:hover {
-      background: #fee2e2;
-    }
-
-    button.delete-btn:disabled {
-      background: transparent;
-      opacity: 0.4;
-    }
-
-    .row {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      margin-bottom: 0.8rem;
-    }
-
-    .field-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #71717a;
-      width: 80px;
-      flex-shrink: 0;
-    }
-
-    .field-value {
-      font-size: 0.9rem;
-      color: #18181b;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    ul li::before {
-      content: "→ ";
-      color: #6366f1;
-    }
-
-    ul li {
-      font-size: 0.9rem;
-      color: #18181b;
-      margin-bottom: 0.3rem;
-    }
-
-    .error {
-      color: #b91c1c;
-      font-size: 0.9rem;
-      margin-top: 1rem;
-      display: none;
-    }
-
-    /* Inbox dashboard */
-
-    .dashboard-controls {
-      display: flex;
-      gap: 0.75rem;
-      align-items: flex-end;
-      margin-bottom: 1rem;
-    }
-
-    .dashboard-controls button {
-      width: auto;
-      flex: 1;
-    }
-
-    .filter-container {
-      min-width: 180px;
-    }
-
-    .filter-container select {
-      margin-top: 0.4rem;
-    }
-
-    .status {
-      min-height: 24px;
-      margin-bottom: 1rem;
-      font-size: 0.9rem;
-      color: #71717a;
-    }
-
-    .status-error {
-      color: #b91c1c;
-    }
-
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9rem;
-    }
-
-    th,
-    td {
-      padding: 0.75rem;
-      border-bottom: 1px solid #e4e4e7;
-      text-align: left;
-    }
-
-    th {
-      background: #fafafa;
-      color: #52525b;
-      font-size: 0.8rem;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    td {
-      color: #18181b;
-    }
-
-    th:nth-child(2),
-    td:nth-child(2),
-    th:nth-child(5),
-    td:nth-child(5) {
-      white-space: normal;
-      overflow-wrap: anywhere;
-    }
-
-    @media (max-width: 700px) {
-      body {
-        padding: 1rem;
-      }
-
-      .card {
-        padding: 1.25rem;
-      }
-
-      .dashboard-controls {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .dashboard-controls button {
-        width: 100%;
-      }
-
-      .filter-container {
-        width: 100%;
-      }
-    }
-  </style>
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/styles.css" />
 </head>
-
 <body>
 
-  <div class="card">
+  <!-- Ambient Background Lighting -->
+  <div class="ambient-mesh" aria-hidden="true"></div>
+  <div class="ambient-grid" aria-hidden="true"></div>
 
-    <h1>ActionAlert AI</h1>
+  <!-- =========================================================
+       SECTION 1: NAVIGATION
+       ========================================================= -->
+  <header class="navbar" id="navbar">
+    <div class="container navbar-container">
+      
+      <!-- Brand Logo -->
+      <a href="#" class="brand" aria-label="ActionAlert AI Home">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            <circle cx="18" cy="6" r="3" fill="#FB7185" stroke="#0B1020" stroke-width="2"></circle>
+          </svg>
+        </div>
+        <span class="brand-name">ActionAlert <span class="gradient-text">AI</span></span>
+        <span class="brand-badge">ML v2.4</span>
+      </a>
 
-    <label for="subject">Subject</label>
-    <input id="subject" type="text" placeholder="e.g. Meeting tomorrow" />
+      <!-- Center Nav Links -->
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="#product" class="nav-link">Product</a></li>
+          <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+          <li><a href="#features" class="nav-link">Features</a></li>
+          <li><a href="#intelligence" class="nav-link">Intelligence</a></li>
+          <li><a href="#studio" class="nav-link">Live Studio</a></li>
+        </ul>
+      </nav>
 
-    <label for="body">Email Body</label>
-    <textarea id="body" placeholder="Paste your email here..."></textarea>
+      <!-- Right Action CTAs -->
+      <div class="nav-actions">
+        <a href="#studio" class="btn btn-ghost btn-sm" id="navSignInBtn" data-action="owner-inbox">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+          Owner Inbox
+        </a>
+        <a href="#studio" class="btn btn-primary btn-sm btn-glow" id="navGetStartedBtn" data-action="get-started">
+          Get Started
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
 
-    <button id="btn" onclick="classify()">Classify</button>
-
-    <p class="error" id="error"></p>
-
-    <div id="result">
-
-      <div class="row">
-        <span class="field-label">Label</span>
-        <span id="label-badge" class="badge"></span>
-        <span id="confidence" style="font-size:0.8rem;color:#71717a;"></span>
-      </div>
-
-      <div class="row">
-        <span class="field-label">Deadline</span>
-        <span id="deadline" class="field-value"></span>
-      </div>
-
-      <div class="row" style="align-items:flex-start">
-        <span class="field-label">Actions</span>
-        <ul id="actions"></ul>
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle Navigation Menu" aria-expanded="false" aria-controls="mobileDrawer">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
       </div>
 
     </div>
-  </div>
 
+    <!-- Mobile Drawer -->
+    <div id="mobileDrawer" class="mobile-drawer" aria-hidden="true">
+      <a href="#product" class="nav-link">Product</a>
+      <a href="#how-it-works" class="nav-link">How It Works</a>
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#intelligence" class="nav-link">Intelligence</a>
+      <a href="#studio" class="nav-link">Live Studio</a>
+      <a href="#studio" class="btn btn-primary btn-sm" id="mobileGetStartedBtn" data-action="get-started" style="margin-top: 0.5rem;">Get Started</a>
+    </div>
+  </header>
 
-  <div class="card dashboard-card">
+  <main>
 
-    <h1>Inbox dashboard</h1>
+    <!-- =========================================================
+         SECTION 2: HERO SECTION
+         ========================================================= -->
+    <section class="hero" id="product">
+      <div class="container hero-grid">
 
-    <div class="dashboard-controls">
+        <!-- Left Column: Copy & Actions -->
+        <div class="hero-content reveal">
+          
+          <div class="section-tag">
+            <span class="pulse-dot"></span>
+            AI-POWERED EMAIL INTELLIGENCE
+          </div>
 
-      <button id="load-history-btn">
-        Load history
-      </button>
+          <h1 class="hero-headline">
+            Your inbox is noisy.<br />
+            Your <span class="gradient-text">priorities</span> shouldn't be.
+          </h1>
 
-      <button id="fetch-emails-btn">
-        Fetch new emails
-      </button>
+          <p class="hero-desc">
+            ActionAlert AI intelligently prioritizes your emails, surfaces urgent messages, and helps you focus on what actually needs your attention.
+          </p>
 
-      <div class="filter-container">
-        <label for="label-filter">Filter</label>
+          <div class="hero-cta-group">
+            <a href="#intelligence" class="btn btn-primary btn-glow">
+              Explore the Intelligence
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polygon points="10 8 16 12 10 16 10 8"></polygon>
+              </svg>
+            </a>
 
-        <select id="label-filter">
-          <option value="all">all</option>
-          <option value="urgent">urgent</option>
-          <option value="not_urgent">not_urgent</option>
-        </select>
+            <a href="#how-it-works" class="btn btn-secondary">
+              See How It Works
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </a>
+          </div>
+
+          <div class="hero-trust">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <polyline points="9 12 11 14 15 10"></polyline>
+            </svg>
+            <span>Built with machine learning. Designed for clarity.</span>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Interactive Product Visualization -->
+        <div class="hero-visual reveal">
+          <div class="mockup-glow" aria-hidden="true"></div>
+
+          <div class="mockup-wrapper">
+            <div class="dashboard-window">
+              
+              <!-- Window Title Bar -->
+              <div class="window-titlebar">
+                <div class="window-dots">
+                  <span class="window-dot close"></span>
+                  <span class="window-dot min"></span>
+                  <span class="window-dot max"></span>
+                </div>
+
+                <div class="window-title">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                  </svg>
+                  ActionAlert Inbox // Real-Time Prioritization Feed
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span class="mono" style="font-size: 0.65rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 3px; border: 1px solid var(--border-subtle);">Illustrative example</span>
+                  <div class="window-live-pill">
+                    <span class="pulse-dot"></span>
+                    LIVE STREAM
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dashboard Body -->
+              <div class="dashboard-body">
+
+                <!-- Overview & Distribution Bar -->
+                <div class="dashboard-overview">
+                  <div class="overview-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-violet-light);">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    Priority Now
+                  </div>
+
+                  <!-- Priority Distribution Chart -->
+                  <div class="priority-distribution">
+                    <span>Distribution:</span>
+                    <div class="dist-bar" title="Urgent / Not Urgent">
+                      <div class="dist-urgent"></div>
+                      <div class="dist-not_urgent"></div>
+                    </div>
+                    <div class="dist-legend">
+                      <span><strong class="dot-urgent">●</strong> Urgent</span>
+                      <span><strong class="dot-not_urgent">●</strong> Not Urgent</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Email Cards Stream -->
+                <div class="email-stream" id="heroEmailStream">
+
+                  <!-- Email 1: Urgent Outage -->
+                  <div class="mock-email-card urgent-border active" data-index="0" tabindex="0" role="button" aria-label="Select urgent production outage email">
+                    <div class="card-top">
+                      <div class="sender-info">
+                        <div class="sender-avatar" style="background: rgba(251, 113, 133, 0.2); color: var(--accent-coral-light);">PD</div>
+                        <span class="sender-name">PagerDuty / SRE Telemetry</span>
+                      </div>
+                      <span class="time-stamp">4m ago</span>
+                    </div>
+                    <div class="subject-line">🚨 Production API outage [AWS us-east-1]</div>
+                    <div class="email-snippet">Auth service latency spiked to 4.2s. 502 errors exceeding 12% threshold across all regions...</div>
+                    <div class="card-metadata">
+                      <span class="badge badge-urgent">URGENT</span>
+                      <span class="meta-chip alert mono">ACTION REQUIRED</span>
+                      <span class="meta-chip mono">AI CONF: 98%</span>
+                      <span class="meta-chip mono" style="color:var(--accent-coral);">⏱ &lt; 45m</span>
+                    </div>
+                  </div>
+
+                  <!-- Email 2: Interview (Not Urgent) -->
+                  <div class="mock-email-card not_urgent-border" data-index="1" tabindex="0" role="button" aria-label="Select interview schedule email">
+                    <div class="card-top">
+                      <div class="sender-info">
+                        <div class="sender-avatar" style="background: rgba(148, 163, 184, 0.15); color: var(--text-secondary);">ER</div>
+                        <span class="sender-name">Elena Rostova (Lead Recruiter)</span>
+                      </div>
+                      <span class="time-stamp">32m ago</span>
+                    </div>
+                    <div class="subject-line">Interview schedule confirmation: Staff ML Engineer</div>
+                    <div class="email-snippet">Hi team, please confirm your availability for the final loop candidate tomorrow at 3:00 PM EST...</div>
+                    <div class="card-metadata">
+                      <span class="badge badge-not_urgent">NOT URGENT</span>
+                      <span class="meta-chip mono">CONFIRMATION</span>
+                      <span class="meta-chip mono">AI CONF: 92%</span>
+                    </div>
+                  </div>
+
+                  <!-- Email 3: Newsletter (Not Urgent) -->
+                  <div class="mock-email-card not_urgent-border" data-index="2" tabindex="0" role="button" aria-label="Select newsletter email">
+                    <div class="card-top">
+                      <div class="sender-info">
+                        <div class="sender-avatar">TW</div>
+                        <span class="sender-name">Substack Tech Weekly</span>
+                      </div>
+                      <span class="time-stamp">2h ago</span>
+                    </div>
+                    <div class="subject-line">Weekly Digest #142: New developments in LLM reasoning</div>
+                    <div class="email-snippet">Here is your curated reading list of machine learning breakthroughs, benchmarks, and community discussions...</div>
+                    <div class="card-metadata">
+                      <span class="badge badge-not_urgent">NOT URGENT</span>
+                      <span class="meta-chip mono">INFORMATIONAL</span>
+                      <span class="meta-chip mono">AI CONF: 89%</span>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- Explainable Priority Inspector Panel -->
+                <div class="ai-inspector-panel">
+                  <div class="inspector-header">
+                    <div class="inspector-tag">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z"></path>
+                      </svg>
+                      AI EXPLANATION
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <span class="mono" style="font-size: 0.65rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 3px; border: 1px solid var(--border-subtle);">Illustrative example</span>
+                      <div class="confidence-indicator" id="inspectorConfidence">98.4% confidence</div>
+                    </div>
+                  </div>
+
+                  <p class="inspector-reasoning" id="inspectorReasoning">
+                    <strong>High Priority detected:</strong> Hard deadline <em>"Within 45 minutes"</em> and action-oriented failure signals identified. Immediate triage required.
+                  </p>
+
+                  <div class="inspector-actions" id="inspectorActions">
+                    <!-- Populated by JS -->
+                  </div>
+                </div>
+
+                <!-- Simulation Trigger -->
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="btn btn-secondary btn-sm" id="simulateInboundBtn" style="font-size: 0.75rem;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="23 4 23 10 17 10"></polyline>
+                      <polyline points="1 20 1 14 7 14"></polyline>
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    Simulate Inbound
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SECTION 3: THE PROBLEM
+         ========================================================= -->
+    <section class="problem-section" id="problem">
+      <div class="container">
+        
+        <div class="text-center reveal">
+          <div class="section-tag">
+            <span class="pulse-dot"></span>
+            THE CORE PROBLEM
+          </div>
+          <h2 class="section-title">
+            Not every email deserves your attention.<br />
+            Some can't wait.
+          </h2>
+          <p class="section-desc">
+            Traditional inboxes sort by timestamp, treating urgent production incidents with the exact same weight as a weekly corporate newsletter.
+          </p>
+        </div>
+
+        <div class="problem-grid">
+          
+          <!-- Card 1: Lost in the Noise -->
+          <div class="problem-card reveal">
+            <div class="problem-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+              </svg>
+            </div>
+            <h3 class="problem-title">Lost in the Noise</h3>
+            <p class="problem-desc">
+              High-value client requests and critical notifications get buried under hundreds of non-urgent updates, marketing promotions, and routine CC chains.
+            </p>
+            <div class="problem-stat">
+              <span>ESTIMATED SIGNAL-TO-NOISE: &lt; 14%</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Context Switching -->
+          <div class="problem-card reveal">
+            <div class="problem-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+            </div>
+            <h3 class="problem-title">Context Switching</h3>
+            <p class="problem-desc">
+              Constant inbox monitoring fractures deep focus. Jumping between coding or strategy to scan incoming mail burns mental energy and destroys momentum.
+            </p>
+            <div class="problem-stat">
+              <span>AVG INBOX CHECKS PER DAY: 36+</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Missed Actions -->
+          <div class="problem-card reveal">
+            <div class="problem-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <h3 class="problem-title">Missed Actions</h3>
+            <p class="problem-desc">
+              Tight deadlines and direct requests slip through the cracks until emergencies happen. Without intelligent extraction, deadlines are easy to overlook.
+            </p>
+            <div class="problem-stat">
+              <span>MISSED DEADLINES CAUSE: UNNECESSARY CRISES</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SECTION 4: HOW IT WORKS
+         ========================================================= -->
+    <section class="how-it-works" id="how-it-works">
+      <div class="container">
+        
+        <div class="text-center reveal">
+          <div class="section-tag">
+            <span class="pulse-dot"></span>
+            PIPELINE ARCHITECTURE
+          </div>
+          <h2 class="section-title">
+            From inbox overload to intelligent action.
+          </h2>
+          <p class="section-desc">
+            A three-step machine learning pipeline analyzes semantics, predicts urgency with statistical models, and extracts explicit action items with LLMs.
+          </p>
+        </div>
+
+        <div class="steps-wrapper">
+          
+          <!-- Animated SVG Connector Line for Desktop -->
+          <svg class="steps-connector-svg" preserveAspectRatio="none" viewBox="0 0 800 4">
+            <defs>
+              <linearGradient id="cyan-violet-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#8B5CF6"></stop>
+                <stop offset="50%" stop-color="#22D3EE"></stop>
+                <stop offset="100%" stop-color="#FB7185"></stop>
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="2" x2="800" y2="2" class="steps-track" stroke-width="2"></line>
+            <line x1="0" y1="2" x2="800" y2="2" id="stepsProgressLine" class="steps-progress" stroke-width="2"></line>
+          </svg>
+
+          <div class="steps-grid">
+            
+            <!-- Step 01: Analyze -->
+            <div class="step-card reveal">
+              <div class="step-badge">
+                <span class="step-number">STEP 01</span>
+                <div class="step-icon-wrap">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                </div>
+              </div>
+              <h3 class="step-title">Analyze</h3>
+              <p class="step-desc">
+                Extract useful signals from email content and context. Tokenizes message text, isolates headers, removes noise, and formats semantic vectors.
+              </p>
+              <div class="step-detail-pill">
+                TF-IDF N-Gram Vectorizer • Semantic Text Normalization
+              </div>
+            </div>
+
+            <!-- Step 02: Prioritize -->
+            <div class="step-card reveal">
+              <div class="step-badge">
+                <span class="step-number">STEP 02</span>
+                <div class="step-icon-wrap" style="background: rgba(34, 211, 238, 0.1); border-color: rgba(34, 211, 238, 0.25); color: var(--accent-cyan);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    <circle cx="12" cy="12" r="9"></circle>
+                  </svg>
+                </div>
+              </div>
+              <h3 class="step-title">Prioritize</h3>
+              <p class="step-desc">
+                Use machine learning to classify messages by importance. Logistic regression outputs calibrated confidence scores to separate urgent tasks from routine mail.
+              </p>
+              <div class="step-detail-pill">
+                Scikit-Learn Classifier • Calibrated Confidence Bounds
+              </div>
+            </div>
+
+            <!-- Step 03: Take Action -->
+            <div class="step-card reveal">
+              <div class="step-badge">
+                <span class="step-number">STEP 03</span>
+                <div class="step-icon-wrap" style="background: rgba(251, 113, 133, 0.1); border-color: rgba(251, 113, 133, 0.25); color: var(--accent-coral);">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                </div>
+              </div>
+              <h3 class="step-title">Take Action</h3>
+              <p class="step-desc">
+                Surface the messages that deserve attention first. Gemini extracts explicit deadlines and structured to-dos, triggering Telegram alerts for anything due within 24 hours.
+              </p>
+              <div class="step-detail-pill">
+                Gemini Extraction • Telegram Instant Push Alerts
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SECTION 5: PRODUCT FEATURES (BENTO GRID)
+         ========================================================= -->
+    <section class="features-section" id="features">
+      <div class="container">
+        
+        <div class="text-center reveal">
+          <div class="section-tag">
+            <span class="pulse-dot"></span>
+            CAPABILITIES
+          </div>
+          <h2 class="section-title">
+            Engineered for high-signal productivity.
+          </h2>
+          <p class="section-desc">
+            Explore the four core pillars of the ActionAlert AI system designed to keep your inbox organized around urgency and actions.
+          </p>
+        </div>
+
+        <div class="bento-grid">
+          
+          <!-- Bento 1: Smart Email Classification (Span 7) -->
+          <div class="bento-card bento-span-7 reveal">
+            <div class="bento-content">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <div class="section-tag" style="margin-bottom: 0;">
+                  CORE ML MODEL
+                </div>
+                <span class="mono" style="font-size: 0.68rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 7px; border-radius: 4px; border: 1px solid var(--border-subtle);">Illustrative example</span>
+              </div>
+              <h3 class="bento-title">Smart Email Classification</h3>
+              <p class="bento-desc">
+                Each incoming email is assigned a clear category with a mathematical confidence score based on trained linguistic patterns.
+              </p>
+            </div>
+
+            <!-- Mini UI for Card 1 -->
+            <div class="bento-classification-ui">
+              <div class="class-item">
+                <div class="class-info">
+                  <span class="badge badge-urgent">URGENT</span>
+                  <span class="class-email-title">Security certificate expiring at midnight</span>
+                </div>
+                <div class="class-meter">
+                  <div class="progress-bar-container">
+                    <div class="progress-fill" style="width: 98%; background: var(--accent-coral);"></div>
+                  </div>
+                  <span class="mono" style="font-size: 0.75rem; color: var(--accent-coral-light);">98%</span>
+                </div>
+              </div>
+
+              <div class="class-item">
+                <div class="class-info">
+                  <span class="badge badge-not_urgent">NOT URGENT</span>
+                  <span class="class-email-title">Q3 Financial plan review & feedback</span>
+                </div>
+                <div class="class-meter">
+                  <div class="progress-bar-container">
+                    <div class="progress-fill" style="width: 88%; background: var(--text-muted);"></div>
+                  </div>
+                  <span class="mono" style="font-size: 0.75rem; color: var(--text-secondary);">88%</span>
+                </div>
+              </div>
+
+              <div class="class-item">
+                <div class="class-info">
+                  <span class="badge badge-not_urgent">NOT URGENT</span>
+                  <span class="class-email-title">Cloud billing monthly statement attached</span>
+                </div>
+                <div class="class-meter">
+                  <div class="progress-bar-container">
+                    <div class="progress-fill" style="width: 94%; background: var(--text-muted);"></div>
+                  </div>
+                  <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);">94%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bento 2: Urgency Detection (Span 5) -->
+          <div class="bento-card bento-span-5 reveal">
+            <div class="bento-content">
+              <div class="section-tag" style="margin-bottom: 0.75rem; color: var(--accent-coral-light); border-color: rgba(251, 113, 133, 0.3);">
+                REAL-TIME DETECTION
+              </div>
+              <h3 class="bento-title">Urgency Detection</h3>
+              <p class="bento-desc">
+                Surfaces time-sensitive messages and highlights critical trigger tokens like deadlines, out-of-band alerts, and pending signoffs.
+              </p>
+            </div>
+
+            <!-- Mini UI for Card 2 -->
+            <div class="bento-urgency-ui">
+              <div class="urgency-alert-header">
+                <div class="urgency-badge-live">
+                  <span class="pulse-dot" style="background: var(--accent-coral); box-shadow: 0 0 8px var(--accent-coral);"></span>
+                  THRESHOLD EXCEEDED
+                </div>
+                <div class="countdown-box">
+                  DUE IN: 03h 45m
+                </div>
+              </div>
+
+              <div class="urgency-trigger-text">
+                "Please review and approve the client MSA <mark>immediately</mark> before <mark>5:00 PM today</mark>, or the deployment window closes."
+              </div>
+
+              <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent-coral-light); display: flex; align-items: center; gap: 0.4rem;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Telegram alert trigger active (&lt; 24h)
+              </div>
+            </div>
+          </div>
+
+          <!-- Bento 3: Explainable Priorities (Span 6) -->
+          <div class="bento-card bento-span-6 reveal">
+            <div class="bento-content">
+              <div class="section-tag" style="margin-bottom: 0.75rem;">
+                TRANSPARENCY
+              </div>
+              <h3 class="bento-title">Explainable Priorities</h3>
+              <p class="bento-desc">
+                No black-box mystery. Every priority determination includes explicit rationales detailing why the message was categorized.
+              </p>
+            </div>
+
+            <!-- Mini UI for Card 3 -->
+            <div class="bento-explain-ui">
+              <div class="explain-row">
+                <span class="explain-key">RATIONALE:</span>
+                <span class="explain-value">High priority: contains a strict deadline and 2 direct action requests.</span>
+              </div>
+              <div class="explain-row">
+                <span class="explain-key">DEADLINE:</span>
+                <span class="explain-value" style="color: var(--accent-cyan);">Today, 18:00 UTC</span>
+              </div>
+              <div class="explain-row">
+                <span class="explain-key">SIGNALS:</span>
+                <div class="explain-tag-list">
+                  <span class="explain-tag">#deadline-explicit</span>
+                  <span class="explain-tag">#action-required</span>
+                  <span class="explain-tag">#p0-triage</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bento 4: Focused Inbox (Span 6) -->
+          <div class="bento-card bento-span-6 reveal">
+            <div class="bento-content">
+              <div class="section-tag" style="margin-bottom: 0.75rem;">
+                WORKFLOW
+              </div>
+              <h3 class="bento-title">Focused Inbox</h3>
+              <p class="bento-desc">
+                An inbox organized purely around what needs attention now, freeing your mental bandwidth for deep work and execution.
+              </p>
+            </div>
+
+            <!-- Mini UI for Card 4 -->
+            <div class="bento-inbox-ui">
+              <div class="inbox-filter-toggle">
+                <button class="filter-btn active" data-mode="prioritized">Prioritized Stream (1)</button>
+                <button class="filter-btn" data-mode="all">Raw Inbox (4)</button>
+              </div>
+
+              <div class="inbox-item-preview" style="border-left: 3px solid var(--accent-coral);">
+                <span>Production API incident</span>
+                <span class="badge badge-urgent">URGENT</span>
+              </div>
+
+              <div class="inbox-item-preview" style="border-left: 3px solid var(--text-muted);">
+                <span>Candidate Interview confirmation</span>
+                <span class="badge badge-not_urgent">NOT URGENT</span>
+              </div>
+
+              <!-- Filtered items (hidden in prioritized view) -->
+              <div class="inbox-item-preview item-noisy" style="opacity: 0.5; display: none;">
+                <span>Newsletter: AI weekly insights</span>
+                <span class="badge badge-not_urgent">NOT URGENT</span>
+              </div>
+              <div class="inbox-item-preview item-noisy" style="opacity: 0.5; display: none;">
+                <span>Product discount promo 20% off</span>
+                <span class="badge badge-not_urgent">NOT URGENT</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SECTION 6: INTELLIGENCE VISUALIZATION (ML PIPELINE)
+         ========================================================= -->
+    <section class="intelligence-section" id="intelligence">
+      <div class="container">
+        
+        <div class="text-center reveal">
+          <div class="section-tag">
+            <span class="pulse-dot"></span>
+            MACHINE LEARNING FOUNDATION
+          </div>
+          <h2 class="section-title">
+            Less noise. More signal.
+          </h2>
+          <p class="section-desc">
+            Watch raw emails move through the automated classification pipeline. Experience how mathematical feature extraction and generative intelligence converge.
+          </p>
+        </div>
+
+        <div class="pipeline-wrapper reveal">
+          
+          <!-- Pipeline Header & Preset Controls -->
+          <div class="pipeline-header">
+            <div>
+              <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">
+                Interactive Pipeline Inspector
+              </h3>
+              <p style="font-size: 0.825rem; color: var(--text-secondary);">
+                Select sample telemetry or input custom email text to evaluate feature extraction.
+              </p>
+            </div>
+
+            <div class="pipeline-controls">
+              <span class="pipeline-preset-label">Sample Data:</span>
+              <button class="preset-chip active" data-preset="0">Server Outage</button>
+              <button class="preset-chip" data-preset="1">Interview Confirm</button>
+              <button class="preset-chip" data-preset="2">Budget Approval</button>
+              <button class="preset-chip" data-preset="3">Newsletter</button>
+            </div>
+          </div>
+
+          <!-- 4 Pipeline Stages Flow -->
+          <div class="pipeline-flow" id="pipelineFlow">
+            
+            <!-- Stage 1: Ingestion -->
+            <div class="pipeline-node" id="nodeStage1">
+              <span class="node-number">01 / INGESTION</span>
+              <h4 class="node-title">Raw Message</h4>
+              <p class="node-desc">Clean subject & body input</p>
+              <div class="node-display" id="stage1Preview">
+                <!-- Injected by JS -->
+              </div>
+            </div>
+
+            <!-- Stage 2: Text Analysis -->
+            <div class="pipeline-node" id="nodeStage2">
+              <span class="node-number">02 / NLP ANALYSIS</span>
+              <h4 class="node-title">Token Extraction</h4>
+              <p class="node-desc">TF-IDF N-gram feature weights</p>
+              <div class="node-display" id="stage2Tokens">
+                <!-- Injected by JS -->
+              </div>
+            </div>
+
+            <!-- Stage 3: ML Classification -->
+            <div class="pipeline-node" id="nodeStage3">
+              <span class="node-number">03 / ML MODEL</span>
+              <h4 class="node-title">Classification</h4>
+              <p class="node-desc">Logistic regression inference</p>
+              <div class="node-display" id="stage3Model">
+                <!-- Injected by JS -->
+              </div>
+            </div>
+
+            <!-- Stage 4: Action Extraction -->
+            <div class="pipeline-node" id="nodeStage4">
+              <span class="node-number">04 / DISPATCH</span>
+              <h4 class="node-title">Actionable Inbox</h4>
+              <p class="node-desc">Gemini extracted to-dos & alert</p>
+              <div class="node-display" id="stage4Actions">
+                <!-- Injected by JS -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Interactive Simulator Box -->
+          <div class="pipeline-interactive-box">
+            <div class="input-row">
+              <input type="text" id="pipelineInput" class="pipeline-input" placeholder="Type or edit email text to evaluate through pipeline..." />
+              <button class="btn btn-primary" id="runPipelineBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Run Through Pipeline
+              </button>
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 0.725rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+              <span>• Evaluates against active scikit-learn model weights</span>
+              <span>• Calibrated on 92 benchmark email samples</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         LIVE CLASSIFIER PLAYGROUND & OWNER INBOX STUDIO
+         ========================================================= -->
+    <section class="live-studio-section" id="studio">
+      <div class="container">
+        
+        <div class="text-center reveal">
+          <div class="section-tag">
+            <span class="pulse-dot"></span>
+            LIVE STUDIO & PLAYGROUND
+          </div>
+          <h2 class="section-title">
+            Test the Intelligence Live.
+          </h2>
+          <p class="section-desc">
+            Submit custom email text to test the public classifier, or unlock the authenticated owner inbox to synchronize with Gmail.
+          </p>
+        </div>
+
+        <div class="studio-card reveal" style="margin-top: 3.5rem;">
+          
+          <!-- Studio Tabs Navigation -->
+          <div class="studio-tabs" role="tablist" aria-label="Studio View Selection">
+            <button class="studio-tab-btn active" id="tabBtnClassifier" data-tab="tabClassifier" role="tab" aria-selected="true" aria-controls="tabClassifier">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+              Public Classifier Playground
+            </button>
+
+            <button class="studio-tab-btn" id="tabBtnInbox" data-tab="tabInboxDashboard" role="tab" aria-selected="false" aria-controls="tabInboxDashboard">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              Owner Inbox Dashboard
+            </button>
+          </div>
+
+          <!-- Tab Pane 1: Classifier Playground -->
+          <div id="tabClassifier" class="tab-pane active" role="tabpanel" aria-labelledby="tabBtnClassifier">
+            <div class="classifier-grid">
+              
+              <!-- Form -->
+              <form id="liveClassifierForm">
+                <div class="form-group">
+                  <label class="form-label" for="classifySubject">
+                    <span>Email Subject</span>
+                    <span class="mono" style="font-size: 0.7rem; color: var(--text-muted);">Optional</span>
+                  </label>
+                  <input type="text" id="classifySubject" class="form-input" placeholder="e.g. Critical Bug Report: Auth service down" />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="classifyBody">
+                    <span>Email Body</span>
+                    <span class="mono" style="font-size: 0.7rem; color: var(--accent-cyan);">Required</span>
+                  </label>
+                  <textarea id="classifyBody" class="form-textarea" placeholder="Paste full email text here... e.g. 'The server is failing healthchecks. Please restore service immediately before 2 PM today.'"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-glow" id="classifySubmitBtn" style="width: 100%;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                  </svg>
+                  Classify Email
+                </button>
+
+                <p id="classifyError" style="color: var(--accent-coral); font-size: 0.85rem; margin-top: 0.75rem; display: none;"></p>
+              </form>
+
+              <!-- Result Panel -->
+              <div class="studio-result-panel">
+                <div class="result-placeholder" id="resultPlaceholder">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-muted);">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <p style="font-size: 0.9rem;">Fill in an email and hit "Classify Email" to view the live ML prediction and extracted actions.</p>
+                </div>
+
+                <div class="result-active-content" id="resultActive">
+                  <div class="result-stat-row">
+                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Predicted Label:</span>
+                    <span id="resultLabel" class="badge"></span>
+                  </div>
+
+                  <div class="result-stat-row">
+                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Model Confidence:</span>
+                    <span id="resultConfidence" class="mono" style="font-weight: 700; color: var(--accent-cyan);"></span>
+                  </div>
+
+                  <div class="result-stat-row">
+                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Extracted Deadline:</span>
+                    <span id="resultDeadline" class="mono" style="font-size: 0.85rem; color: var(--accent-coral-light);"></span>
+                  </div>
+
+                  <div>
+                    <span style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Extracted Actions:</span>
+                    <ul id="resultActionsList" style="list-style: none; display: flex; flex-direction: column; gap: 0.4rem;">
+                      <!-- Populated by JS -->
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Tab Pane 2: Owner Inbox Dashboard -->
+          <div id="tabInboxDashboard" class="tab-pane" role="tabpanel" aria-labelledby="tabBtnInbox">
+            
+            <div class="dashboard-controls-bar">
+              <div class="controls-left">
+                <button class="btn btn-secondary btn-sm" id="loadHistoryBtn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <polyline points="23 20 23 14 17 14"></polyline>
+                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                  </svg>
+                  Load History
+                </button>
+
+                <button class="btn btn-primary btn-sm" id="fetchEmailsBtn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                  Fetch New Emails (Gmail)
+                </button>
+
+                <button class="btn btn-ghost btn-sm" id="inboxLogoutBtn" title="Log out and clear saved owner password" style="color: var(--text-muted);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  Logout
+                </button>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label for="inboxFilterSelect" style="font-size: 0.85rem; color: var(--text-secondary);">Filter:</label>
+                <select id="inboxFilterSelect" class="inbox-filter-select">
+                  <option value="all">All Emails</option>
+                  <option value="urgent">Urgent Only</option>
+                  <option value="not_urgent">Not Urgent</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Stats Strip on Dashboard -->
+            <div class="inbox-stats-strip" id="inboxStatsStrip">
+              <div class="stat-card">
+                <span class="stat-label">Total Emails</span>
+                <span class="stat-value" id="statTotal">0</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Urgent</span>
+                <span class="stat-value" id="statUrgent" style="color: var(--accent-coral-light);">0</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Not Urgent</span>
+                <span class="stat-value" id="statNotUrgent" style="color: var(--text-secondary);">0</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">With Deadline</span>
+                <span class="stat-value" id="statDeadline" style="color: var(--accent-cyan);">0</span>
+              </div>
+            </div>
+
+            <!-- Status Message Bar -->
+            <div id="inboxStatusMsg" class="inbox-status-msg" aria-live="polite">
+              Click "Load History" to inspect stored classifications. (Requires owner password)
+            </div>
+
+            <!-- Inbox Table -->
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Label</th>
+                    <th>Subject</th>
+                    <th>From</th>
+                    <th>Deadline</th>
+                    <th>Actions</th>
+                    <th>Classified At</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="inboxTableBody">
+                  <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                      No emails loaded yet. Authenticate and click "Load History".
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SECTION 7: FINAL CTA
+         ========================================================= -->
+    <section class="final-cta" id="cta">
+      <div class="container">
+        
+        <div class="cta-box reveal">
+          <div class="cta-glow-circle" aria-hidden="true"></div>
+
+          <div class="section-tag" style="margin-bottom: 1.5rem;">
+            <span class="pulse-dot"></span>
+            ZERO INBOX ANXIETY
+          </div>
+
+          <h2 class="cta-title">
+            Make room for the work that matters.
+          </h2>
+
+          <p class="cta-subtitle">
+            Let intelligent prioritization help you focus on the emails that need you most. Reclaim your focus, meet your deadlines, and silence the noise.
+          </p>
+
+          <div class="cta-action-wrap">
+            <a href="#studio" class="btn btn-primary btn-glow" id="ctaGetStartedBtn" data-action="get-started" style="padding: 0.9rem 2.2rem; font-size: 1.05rem;">
+              Get Started with ActionAlert AI
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================
+       FOOTER
+       ========================================================= -->
+  <footer class="site-footer">
+    <div class="container">
+      
+      <div class="footer-top">
+        
+        <!-- Brand Column -->
+        <div class="footer-brand-col">
+          <a href="#" class="brand">
+            <div class="brand-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                <circle cx="18" cy="6" r="3" fill="#FB7185" stroke="#0B1020" stroke-width="2"></circle>
+              </svg>
+            </div>
+            <span class="brand-name">ActionAlert <span class="gradient-text">AI</span></span>
+          </a>
+          <p class="footer-desc">
+            Your inbox. Prioritized by intelligence. Automated machine learning classification and Gemini-powered action extraction.
+          </p>
+        </div>
+
+        <!-- Product Column -->
+        <div>
+          <h4 class="footer-heading">Product</h4>
+          <ul class="footer-links">
+            <li><a href="#product" class="footer-link">Overview</a></li>
+            <li><a href="#how-it-works" class="footer-link">Architecture</a></li>
+            <li><a href="#features" class="footer-link">Features</a></li>
+            <li><a href="#intelligence" class="footer-link">ML Pipeline</a></li>
+          </ul>
+        </div>
+
+        <!-- Technology Column -->
+        <div>
+          <h4 class="footer-heading">Technology</h4>
+          <ul class="footer-links">
+            <li><span class="footer-link" style="color: var(--text-muted);">FastAPI Backend</span></li>
+            <li><span class="footer-link" style="color: var(--text-muted);">Scikit-Learn Classifier</span></li>
+            <li><span class="footer-link" style="color: var(--text-muted);">Google Gemini Extractor</span></li>
+            <li><span class="footer-link" style="color: var(--text-muted);">PostgreSQL & SQLite</span></li>
+          </ul>
+        </div>
+
+        <!-- Resources Column -->
+        <div>
+          <h4 class="footer-heading">Resources</h4>
+          <ul class="footer-links">
+            <li><a href="#studio" class="footer-link">Live Playground</a></li>
+            <li><a href="https://github.com/dark-maj/ActionAlert-AI" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub Repository</a></li>
+            <li><a href="/docs" target="_blank" rel="noopener noreferrer" class="footer-link">FastAPI Swagger Docs</a></li>
+            <li><a href="/health" target="_blank" rel="noopener noreferrer" class="footer-link">Health Check</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Footer Bottom -->
+      <div class="footer-bottom">
+        <div>
+          © 2026 ActionAlert AI. Released under the MIT License.
+        </div>
+
+        <div class="status-indicator">
+          <span class="status-dot-active"></span>
+          <span>Inference Engine: Operational (v2.4)</span>
+        </div>
       </div>
 
     </div>
+  </footer>
 
-    <div
-      id="inbox-status"
-      class="status"
-      aria-live="polite"
-    ></div>
-
-    <div class="table-container">
-
-      <table id="inbox-table">
-
-        <thead>
-          <tr>
-            <th>Label</th>
-            <th>Subject</th>
-            <th>From</th>
-            <th>Deadline</th>
-            <th>Actions</th>
-            <th>Classified at</th>
-            <th></th>
-          </tr>
-        </thead>
-
-        <tbody id="inbox-table-body">
-        </tbody>
-
-      </table>
-
-    </div>
-
-  </div>
-
-
-  <script>
-
-  function getPassword() {
-    let password = localStorage.getItem("appPassword");
-
-    if (password) {
-      return password;
-    }
-
-    password = prompt("Owner password for inbox features");
-
-    if (!password || password.trim() === "") {
-      return null;
-    }
-
-    localStorage.setItem("appPassword", password);
-    return password;
-  }
-
-
-  async function api_fetch(url, options = {}, password = null) {
-    const headers = {
-      ...options.headers
-    };
-
-    if (password) {
-      headers["X-App-Password"] = password;
-    }
-
-    const response = await fetch(url, {
-      ...options,
-      headers
-    });
-
-    return response;
-  }
-
-
-  async function protectedFetch(url, options = {}) {
-    const password = getPassword();
-
-    if (!password) {
-      setInboxStatus("Owner-only");
-      return null;
-    }
-
-    const response = await api_fetch(url, options, password);
-
-    if (response.status === 401) {
-      localStorage.removeItem("appPassword");
-      setInboxStatus(
-        "Invalid password — click again to retry",
-        true
-      );
-      return null;
-    }
-
-    return response;
-  }
-
-
-  function setInboxStatus(message, isError = false) {
-    const status = document.getElementById("inbox-status");
-
-    status.textContent = message;
-    status.className = isError
-      ? "status status-error"
-      : "status";
-  }
-
-
-  // Rows currently shown in the table; the filter works on this list.
-  let currentEmails = [];
-
-
-  function makeCell(text) {
-    const td = document.createElement("td");
-
-    if (text) {
-      td.textContent = text;
-    } else {
-      td.textContent = "—";
-      td.className = "muted";
-    }
-
-    return td;
-  }
-
-
-  function formatDate(iso) {
-    if (!iso) {
-      return null;
-    }
-
-    const date = new Date(iso);
-    return isNaN(date) ? iso : date.toLocaleString();
-  }
-
-
-  function renderTable(emails) {
-    const tbody = document.getElementById("inbox-table-body");
-    tbody.replaceChildren();
-
-    if (emails.length === 0) {
-      const tr = document.createElement("tr");
-      const td = makeCell("No emails yet");
-      td.colSpan = 7;
-      tr.appendChild(td);
-      tbody.appendChild(tr);
-      return;
-    }
-
-    for (const email of emails) {
-      const tr = document.createElement("tr");
-
-      if (email.label === "urgent") {
-        tr.className = "row-urgent";
-      }
-
-      // Label column reuses the classifier badge styles.
-      const labelTd = document.createElement("td");
-      const badge = document.createElement("span");
-      badge.className = "badge badge-" + email.label;
-      badge.textContent = email.label;
-      labelTd.appendChild(badge);
-      tr.appendChild(labelTd);
-
-      // /history rows use "sender", /emails rows use "from".
-      tr.appendChild(makeCell(email.subject));
-      tr.appendChild(makeCell(email.sender || email.from));
-      tr.appendChild(makeCell(email.deadline));
-      tr.appendChild(makeCell((email.actions || []).join(", ")));
-      tr.appendChild(makeCell(formatDate(email.classified_at)));
-
-      const deleteTd = document.createElement("td");
-      const deleteBtn = document.createElement("button");
-      deleteBtn.className = "delete-btn";
-      deleteBtn.textContent = "🗑";
-      deleteBtn.title = "Remove this email";
-      deleteBtn.setAttribute("aria-label", "Remove " + (email.subject || "email"));
-      deleteBtn.addEventListener("click", () => deleteEmail(email, deleteBtn));
-      deleteTd.appendChild(deleteBtn);
-      tr.appendChild(deleteTd);
-
-      tbody.appendChild(tr);
-    }
-  }
-
-
-  async function deleteEmail(email, btn) {
-    if (!confirm("Remove \"" + (email.subject || "this email") + "\" from history?")) {
-      return;
-    }
-
-    btn.disabled = true;
-
-    try {
-      const response = await protectedFetch(
-        "/history/" + encodeURIComponent(email.id),
-        { method: "DELETE" }
-      );
-
-      if (!response) {
-        return;
-      }
-
-      // 404 means it was already gone, so drop it from the table either way.
-      if (!response.ok && response.status !== 404) {
-        setInboxStatus(await readError(response), true);
-        return;
-      }
-
-      currentEmails = currentEmails.filter(e => e.id !== email.id);
-      const shown = applyFilter();
-      setInboxStatus(
-        "Removed. Showing " + shown + " of " + currentEmails.length + " saved emails"
-      );
-
-    } catch (e) {
-      setInboxStatus("Could not reach the server.", true);
-
-    } finally {
-      btn.disabled = false;
-    }
-  }
-
-
-  function applyFilter() {
-    const label = document.getElementById("label-filter").value;
-
-    const visible = label === "all"
-      ? currentEmails
-      : currentEmails.filter(e => e.label === label);
-
-    renderTable(visible);
-    return visible.length;
-  }
-
-
-  async function readError(response) {
-    try {
-      const data = await response.json();
-      return data.detail || "Server error.";
-    } catch {
-      return "Server error (" + response.status + ").";
-    }
-  }
-
-
-  async function loadHistory() {
-    setInboxStatus("Loading history...");
-
-    const response = await protectedFetch("/history");
-
-    if (!response) {
-      return;
-    }
-
-    if (!response.ok) {
-      setInboxStatus(await readError(response), true);
-      return;
-    }
-
-    const data = await response.json();
-    currentEmails = data.emails;
-
-    const shown = applyFilter();
-    setInboxStatus(
-      "Showing " + shown + " of " + currentEmails.length + " saved emails"
-    );
-  }
-
-
-  async function fetchNewEmails() {
-    const btn = document.getElementById("fetch-emails-btn");
-    btn.disabled = true;
-    btn.textContent = "Fetching...";
-    setInboxStatus("Fetching and classifying new emails from Gmail...");
-
-    try {
-      const response = await protectedFetch("/emails?n=10");
-
-      if (!response) {
-        return;
-      }
-
-      if (!response.ok) {
-        setInboxStatus(await readError(response), true);
-        return;
-      }
-
-      // /emails saves every email it classifies, so reloading history
-      // shows the new ones together with everything saved before.
-      const data = await response.json();
-      await loadHistory();
-      setInboxStatus(
-        "Classified " + data.emails.length + " new emails. " +
-        document.getElementById("inbox-status").textContent
-      );
-
-    } catch (e) {
-      setInboxStatus("Could not reach the server.", true);
-
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Fetch new emails";
-    }
-  }
-
-
-  document
-    .getElementById("load-history-btn")
-    .addEventListener("click", loadHistory);
-
-  document
-    .getElementById("fetch-emails-btn")
-    .addEventListener("click", fetchNewEmails);
-
-  document
-    .getElementById("label-filter")
-    .addEventListener("change", () => {
-      if (currentEmails.length === 0) {
-        return;
-      }
-
-      const shown = applyFilter();
-      setInboxStatus(
-        "Showing " + shown + " of " + currentEmails.length + " saved emails"
-      );
-    });
-
-
-  async function classify() {
-    const subject = document.getElementById("subject").value.trim();
-    const body = document.getElementById("body").value.trim();
-    const btn = document.getElementById("btn");
-    const errorEl = document.getElementById("error");
-    const resultEl = document.getElementById("result");
-
-    if (!body) {
-      showError("Email body cannot be empty.");
-      return;
-    }
-
-    errorEl.style.display = "none";
-    resultEl.style.display = "none";
-    btn.disabled = true;
-    btn.textContent = "Classifying...";
-
-    try {
-      const res = await api_fetch("/classify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, body })
-      });
-
-      if (!res.ok) {
-        const e = await res.json();
-        showError(e.detail || "Server error.");
-        return;
-      }
-
-      const data = await res.json();
-      renderResult(data);
-
-    } catch (e) {
-      showError(
-        "Could not reach the server. Make sure uvicorn is running."
-      );
-
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Classify";
-    }
-  }
-
-
-  function renderResult(data) {
-    const badge = document.getElementById("label-badge");
-
-    badge.textContent = data.label;
-    badge.className = "badge badge-" + data.label;
-
-    document.getElementById("confidence").textContent =
-      (data.confidence * 100).toFixed(0) + "% confidence";
-
-    document.getElementById("deadline").textContent =
-      data.deadline || "None detected";
-
-    const ul = document.getElementById("actions");
-
-    ul.replaceChildren();
-
-    if (data.actions.length) {
-      for (const action of data.actions) {
-        const li = document.createElement("li");
-        li.textContent = action;
-        ul.appendChild(li);
-      }
-    } else {
-      const li = document.createElement("li");
-      li.textContent = "None detected";
-      li.style.color = "#71717a";
-      ul.appendChild(li);
-    }
-
-    document.getElementById("result").style.display = "block";
-  }
-
-
-  function showError(msg) {
-    const el = document.getElementById("error");
-
-    el.textContent = msg;
-    el.style.display = "block";
-  }
-
-</script>
-
+  <!-- Scripts -->
+  <script src="/app.js"></script>
 </body>
-
 </html>
