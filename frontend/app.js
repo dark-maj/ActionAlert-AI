@@ -30,7 +30,7 @@ const HERO_EMAILS = [
   },
   {
     id: "hero-2",
-    label: "important",
+    label: "not_urgent",
     sender: "Elena Rostova (Lead Recruiter)",
     avatar: "ER",
     subject: "Interview schedule confirmation: Staff ML Engineer",
@@ -39,11 +39,11 @@ const HERO_EMAILS = [
     confidence: "92.1%",
     deadline: "Tomorrow, 3:00 PM EST",
     actions: ["Confirm panel availability", "Review candidate portfolio notes"],
-    chips: ["MEETING", "ACTION ITEM", "DECISION"]
+    chips: ["MEETING", "ACTION ITEM", "CONFIRMED"]
   },
   {
     id: "hero-3",
-    label: "low",
+    label: "not_urgent",
     sender: "Substack Tech Weekly",
     avatar: "TW",
     subject: "Weekly Digest #142: New developments in LLM reasoning",
@@ -168,11 +168,9 @@ function initHeroMockup() {
 
     if (inspectorReasoning) {
       if (data.label === "urgent") {
-        inspectorReasoning.innerHTML = `<strong>High Priority detected:</strong> Hard deadline <em>"${escapeHtml(data.deadline)}"</em> identified with high urgency indicators. Immediate triage required.`;
-      } else if (data.label === "important") {
-        inspectorReasoning.innerHTML = `<strong>Important scheduling item:</strong> Calendar event confirmation required for <em>"${escapeHtml(data.deadline)}"</em>.`;
+        inspectorReasoning.innerHTML = `<strong>Urgent detected:</strong> Hard deadline <em>"${escapeHtml(data.deadline)}"</em> identified with urgency indicators. Immediate triage required.`;
       } else {
-        inspectorReasoning.innerHTML = `<strong>Low Priority:</strong> Informational broadcast detected. No action items or temporal deadlines identified.`;
+        inspectorReasoning.innerHTML = `<strong>Not Urgent:</strong> Standard email priority detected. No critical temporal deadline or immediate escalation required.`;
       }
     }
 

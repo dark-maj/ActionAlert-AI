@@ -177,9 +177,12 @@
                   ActionAlert Inbox // Real-Time Prioritization Feed
                 </div>
 
-                <div class="window-live-pill">
-                  <span class="pulse-dot"></span>
-                  LIVE STREAM
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span class="mono" style="font-size: 0.65rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 3px; border: 1px solid var(--border-subtle);">Illustrative example</span>
+                  <div class="window-live-pill">
+                    <span class="pulse-dot"></span>
+                    LIVE STREAM
+                  </div>
                 </div>
               </div>
 
@@ -198,14 +201,13 @@
                   <!-- Priority Distribution Chart -->
                   <div class="priority-distribution">
                     <span>Distribution:</span>
-                    <div class="dist-bar" title="8% Urgent, 32% Important, 60% Low">
+                    <div class="dist-bar" title="Urgent / Not Urgent">
                       <div class="dist-urgent"></div>
-                      <div class="dist-important"></div>
-                      <div class="dist-low"></div>
+                      <div class="dist-not_urgent"></div>
                     </div>
                     <div class="dist-legend">
-                      <span><strong class="dot-urgent">●</strong> 8% Urgent</span>
-                      <span><strong class="dot-important">●</strong> 32% Imp</span>
+                      <span><strong class="dot-urgent">●</strong> Urgent</span>
+                      <span><strong class="dot-not_urgent">●</strong> Not Urgent</span>
                     </div>
                   </div>
                 </div>
@@ -232,11 +234,11 @@
                     </div>
                   </div>
 
-                  <!-- Email 2: Important Interview -->
-                  <div class="mock-email-card important-border" data-index="1" tabindex="0" role="button" aria-label="Select important interview schedule email">
+                  <!-- Email 2: Interview (Not Urgent) -->
+                  <div class="mock-email-card not_urgent-border" data-index="1" tabindex="0" role="button" aria-label="Select interview schedule email">
                     <div class="card-top">
                       <div class="sender-info">
-                        <div class="sender-avatar" style="background: rgba(139, 92, 246, 0.2); color: var(--accent-violet-light);">ER</div>
+                        <div class="sender-avatar" style="background: rgba(148, 163, 184, 0.15); color: var(--text-secondary);">ER</div>
                         <span class="sender-name">Elena Rostova (Lead Recruiter)</span>
                       </div>
                       <span class="time-stamp">32m ago</span>
@@ -244,14 +246,14 @@
                     <div class="subject-line">Interview schedule confirmation: Staff ML Engineer</div>
                     <div class="email-snippet">Hi team, please confirm your availability for the final loop candidate tomorrow at 3:00 PM EST...</div>
                     <div class="card-metadata">
-                      <span class="badge badge-important">IMPORTANT</span>
+                      <span class="badge badge-not_urgent">NOT URGENT</span>
                       <span class="meta-chip mono">CONFIRMATION</span>
                       <span class="meta-chip mono">AI CONF: 92%</span>
                     </div>
                   </div>
 
-                  <!-- Email 3: Low Priority Newsletter -->
-                  <div class="mock-email-card low-border" data-index="2" tabindex="0" role="button" aria-label="Select low priority newsletter email">
+                  <!-- Email 3: Newsletter (Not Urgent) -->
+                  <div class="mock-email-card not_urgent-border" data-index="2" tabindex="0" role="button" aria-label="Select newsletter email">
                     <div class="card-top">
                       <div class="sender-info">
                         <div class="sender-avatar">TW</div>
@@ -262,7 +264,7 @@
                     <div class="subject-line">Weekly Digest #142: New developments in LLM reasoning</div>
                     <div class="email-snippet">Here is your curated reading list of machine learning breakthroughs, benchmarks, and community discussions...</div>
                     <div class="card-metadata">
-                      <span class="badge badge-low">LOW PRIORITY</span>
+                      <span class="badge badge-not_urgent">NOT URGENT</span>
                       <span class="meta-chip mono">INFORMATIONAL</span>
                       <span class="meta-chip mono">AI CONF: 89%</span>
                     </div>
@@ -279,7 +281,10 @@
                       </svg>
                       AI EXPLANATION
                     </div>
-                    <div class="confidence-indicator" id="inspectorConfidence">98.4% confidence</div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <span class="mono" style="font-size: 0.65rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 3px; border: 1px solid var(--border-subtle);">Illustrative example</span>
+                      <div class="confidence-indicator" id="inspectorConfidence">98.4% confidence</div>
+                    </div>
                   </div>
 
                   <p class="inspector-reasoning" id="inspectorReasoning">
@@ -518,8 +523,11 @@
           <!-- Bento 1: Smart Email Classification (Span 7) -->
           <div class="bento-card bento-span-7 reveal">
             <div class="bento-content">
-              <div class="section-tag" style="margin-bottom: 0.75rem;">
-                CORE ML MODEL
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <div class="section-tag" style="margin-bottom: 0;">
+                  CORE ML MODEL
+                </div>
+                <span class="mono" style="font-size: 0.68rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 7px; border-radius: 4px; border: 1px solid var(--border-subtle);">Illustrative example</span>
               </div>
               <h3 class="bento-title">Smart Email Classification</h3>
               <p class="bento-desc">
@@ -544,20 +552,20 @@
 
               <div class="class-item">
                 <div class="class-info">
-                  <span class="badge badge-important">IMPORTANT</span>
+                  <span class="badge badge-not_urgent">NOT URGENT</span>
                   <span class="class-email-title">Q3 Financial plan review & feedback</span>
                 </div>
                 <div class="class-meter">
                   <div class="progress-bar-container">
-                    <div class="progress-fill" style="width: 88%; background: var(--accent-violet);"></div>
+                    <div class="progress-fill" style="width: 88%; background: var(--text-muted);"></div>
                   </div>
-                  <span class="mono" style="font-size: 0.75rem; color: var(--accent-violet-light);">88%</span>
+                  <span class="mono" style="font-size: 0.75rem; color: var(--text-secondary);">88%</span>
                 </div>
               </div>
 
               <div class="class-item">
                 <div class="class-info">
-                  <span class="badge badge-low">NOT URGENT</span>
+                  <span class="badge badge-not_urgent">NOT URGENT</span>
                   <span class="class-email-title">Cloud billing monthly statement attached</span>
                 </div>
                 <div class="class-meter">
@@ -655,28 +663,28 @@
             <!-- Mini UI for Card 4 -->
             <div class="bento-inbox-ui">
               <div class="inbox-filter-toggle">
-                <button class="filter-btn active" data-mode="prioritized">Prioritized Stream (2)</button>
-                <button class="filter-btn" data-mode="all">Raw Inbox (5)</button>
+                <button class="filter-btn active" data-mode="prioritized">Prioritized Stream (1)</button>
+                <button class="filter-btn" data-mode="all">Raw Inbox (4)</button>
               </div>
 
               <div class="inbox-item-preview" style="border-left: 3px solid var(--accent-coral);">
                 <span>Production API incident</span>
-                <span class="badge badge-urgent">ACTION NOW</span>
+                <span class="badge badge-urgent">URGENT</span>
               </div>
 
-              <div class="inbox-item-preview" style="border-left: 3px solid var(--accent-violet);">
+              <div class="inbox-item-preview" style="border-left: 3px solid var(--text-muted);">
                 <span>Candidate Interview confirmation</span>
-                <span class="badge badge-important">TODAY</span>
+                <span class="badge badge-not_urgent">NOT URGENT</span>
               </div>
 
               <!-- Filtered items (hidden in prioritized view) -->
               <div class="inbox-item-preview item-noisy" style="opacity: 0.5; display: none;">
                 <span>Newsletter: AI weekly insights</span>
-                <span class="badge badge-low">FILTERED</span>
+                <span class="badge badge-not_urgent">NOT URGENT</span>
               </div>
               <div class="inbox-item-preview item-noisy" style="opacity: 0.5; display: none;">
                 <span>Product discount promo 20% off</span>
-                <span class="badge badge-low">FILTERED</span>
+                <span class="badge badge-not_urgent">NOT URGENT</span>
               </div>
             </div>
           </div>

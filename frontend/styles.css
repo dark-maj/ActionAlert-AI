@@ -316,6 +316,15 @@ body {
   color: var(--text-secondary);
 }
 
+.badge-low::before,
+.badge-not_urgent::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+}
+
 .badge-cyan {
   background: rgba(34, 211, 238, 0.12);
   border: 1px solid rgba(34, 211, 238, 0.3);
@@ -624,9 +633,9 @@ body {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.dist-urgent { width: 15%; background: var(--accent-coral); }
-.dist-important { width: 35%; background: var(--accent-violet); }
-.dist-low { width: 50%; background: var(--accent-cyan); opacity: 0.6; }
+.dist-urgent { width: 25%; background: var(--accent-coral); }
+.dist-not_urgent,
+.dist-low { width: 75%; background: var(--text-muted); opacity: 0.6; }
 
 .dist-legend {
   display: flex;
@@ -641,7 +650,8 @@ body {
 }
 
 .dist-legend .dot-urgent { color: var(--accent-coral); }
-.dist-legend .dot-important { color: var(--accent-violet-light); }
+.dist-legend .dot-not_urgent,
+.dist-legend .dot-important { color: var(--text-muted); }
 
 /* Email Cards in Mockup */
 .email-stream {
@@ -676,10 +686,8 @@ body {
   border-left: 3px solid var(--accent-coral);
 }
 
-.mock-email-card.important-border {
-  border-left: 3px solid var(--accent-violet);
-}
-
+.mock-email-card.not_urgent-border,
+.mock-email-card.important-border,
 .mock-email-card.low-border {
   border-left: 3px solid var(--text-muted);
 }
